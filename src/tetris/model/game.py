@@ -85,7 +85,6 @@ def get_grid_for_piece_type(piece_type):
 
 
 @unique
-@dataclass
 class PieceOrientation(Enum):
     UP = 0
     DOWN = 2
