@@ -127,6 +127,7 @@ class Piece:
 class Board:
     grid: np.array
 
+    # TODO: rename to row_count, etc
     @property
     def num_rows(self):
         return self.grid.shape[0]
@@ -134,6 +135,11 @@ class Board:
     @property
     def num_cols(self):
         return self.grid.shape[1]
+
+    # TODO: see where else this can be used
+    @property
+    def block_coords(self):
+        return np_array_to_coords(self.grid, is_block)
 
     def __str__(self):
         # TODO: improve this?
