@@ -54,8 +54,3 @@ class GameBoard():
 
         time.sleep(10)
         pygame.quit()
-
-
-
-
-
