@@ -223,4 +223,5 @@ def create_initial_state():
     return create_new_state(create_initial_board())
 
 def generate_new_move(state):
-    return choice(state.possible_moves)
+    possible_moves = state.possible_moves
+    return choice(possible_moves) if possible_moves else None
