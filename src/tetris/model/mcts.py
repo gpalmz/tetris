@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from common.model.mcts import TaskState
-from game import State
+from tetris.model.game import State
 
 
 @dataclass
