@@ -9,6 +9,10 @@ class Task(ABC):
     def time_remaining(self):
         pass
 
+    @abstractmethod
+    def start(self):
+        pass
+
 
 @dataclass
 class TaskState(ABC):
@@ -26,19 +30,16 @@ class TaskState(ABC):
 
 
 @dataclass
-class TaskNode(Task, ABC):
+class TaskNode(TaskState, ABC):
     state: TaskState
     parent: 'TaskNode'
 
-    @abstractproperty
     def is_terminal(self):
         return self.state.is_terminal
 
-    @abstractproperty
     def actions(self):
         return self.state.actions
 
-    @abstractproperty
     def perform_action(self, action):
         child = copy.deepcopy(self)
         child.state = self.state.perform_action(action)
