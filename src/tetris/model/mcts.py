@@ -35,16 +35,6 @@ class TetrisTaskState(TaskState):
         self.state.play_move(action)
 
 
-def get_utility_by_move(state, get_utility):
-    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
-
-
-def select_move(state):
-    # for now just return the best move, later maybe we'll work in probability
-    utility_by_move = get_utility_by_move(state, get_concealed_block_and_empty_row_utility)
-    return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
-
-
 @dataclass
 class TetrisTaskNode(TaskNode):
     @property
@@ -67,6 +57,16 @@ class TetrisTaskNode(TaskNode):
 
     def back_propagate(self, result):
         pass
+
+
+def get_utility_by_move(state, get_utility):
+    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
+
+
+def select_move(state):
+    # for now just return the best move, later maybe we'll work in probability
+    utility_by_move = get_utility_by_move(state, get_concealed_block_and_empty_row_utility)
+    return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
 
 
 @dataclass
