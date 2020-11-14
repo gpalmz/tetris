@@ -1,15 +1,15 @@
-from tetris.ui.sarah import GameBoard
-from tetris.model.game import create_initial_state
+from tetris.model.game import create_initial_board, create_initial_state
 from tetris.model.mcts import select_move
 from tetris.model.strategy import (
-    get_concealed_block_count, 
+    get_concealed_block_count,
     get_empty_row_count,
     get_concealed_block_utility,
     get_empty_row_utility,
 )
+from tetris.ui.game import GameBoard
 
 
-def demo_game_stdout():    
+def demo_game_stdout():
     curr_state = create_initial_state()
     while(True):
         move = select_move(curr_state)
@@ -23,10 +23,10 @@ def demo_game_stdout():
         print(get_concealed_block_utility(curr_state))
         print(get_empty_row_utility(curr_state))
 
-        
-def demo_game_ui():
-    game_board = GameBoard(board_0)
-    game_board.play_game()
-    
 
-demo_game_stdout()
+def demo_game_ui():
+    GameBoard(create_initial_board()).play_game()
+
+
+# demo_game_stdout()
+demo_game_ui()

@@ -1,6 +1,6 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
-from random import choice, randrange
+from random import randrange
 
 import numpy as np
 
@@ -127,16 +127,14 @@ class Piece:
 class Board:
     grid: np.array
 
-    # TODO: rename to row_count, etc
     @property
-    def num_rows(self):
+    def row_count(self):
         return self.grid.shape[0]
 
     @property
-    def num_cols(self):
+    def col_count(self):
         return self.grid.shape[1]
 
-    # TODO: see where else this can be used
     @property
     def block_coords(self):
         return np_array_to_coords(self.grid, is_block)
@@ -195,7 +193,7 @@ class State:
         return [
             Move(col, orientation)
             for orientation in PieceOrientation
-            for col in range(self.board.num_cols)
+            for col in range(self.board.col_count)
             if can_place_at_coord(self.board, Piece(self.piece_type, orientation), 0, col)
         ]
 
@@ -206,7 +204,7 @@ class State:
         # Pieces are placed as far down as possible. Determine the row here.
         # NOTE: Breaking the loop is important since the piece can't pass through blocks.
         placement_row = 0
-        for row in range(self.board.num_rows):
+        for row in range(self.board.row_count):
             if not can_place_at_coord(self.board, piece, row, move.column):
                 break
             placement_row = row
@@ -227,7 +225,3 @@ def create_new_state(board):
 
 def create_initial_state():
     return create_new_state(create_initial_board())
-
-def generate_new_move(state):
-    possible_moves = state.possible_moves
-    return choice(possible_moves) if possible_moves else None

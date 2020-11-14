@@ -22,7 +22,7 @@ def get_empty_row_count(state):
 
 
 def get_concealed_block_utility(state):
-    total_block_count = (state.board.num_rows * state.board.num_cols)
+    total_block_count = (state.board.row_count * state.board.col_count)
     return (
         WEIGHT_CONCEALED_BLOCK_UTILITY *
         (total_block_count - get_concealed_block_count(state)) / total_block_count
@@ -30,7 +30,7 @@ def get_concealed_block_utility(state):
 
 
 def get_empty_row_utility(state):
-    return WEIGHT_EMPTY_ROW_UTILITY * get_empty_row_count(state) / state.board.num_rows
+    return WEIGHT_EMPTY_ROW_UTILITY * get_empty_row_count(state) / state.board.row_count
 
 
 def get_concealed_block_and_empty_row_utility(state):
