@@ -1,4 +1,4 @@
-from game import (
+from .game import (
     Piece, 
     PieceType, 
     PieceOrientation, 
