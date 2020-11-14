@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from common.util.iter import max_by
 from common.model.mcts import Task, TaskState, TaskNode, mcts
-from tetris.model.strategy import get_concealed_block_and_empty_row_utility
+from tetris.model.strategy import get_concealed_space_and_empty_row_utility
 from tetris.model.game import State
 
 
@@ -65,7 +65,7 @@ def get_utility_by_move(state, get_utility):
 
 def select_move(state):
     # for now just return the best move, later maybe we'll work in probability
-    utility_by_move = get_utility_by_move(state, get_concealed_block_and_empty_row_utility)
+    utility_by_move = get_utility_by_move(state, get_concealed_space_and_empty_row_utility)
     return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
 
 
