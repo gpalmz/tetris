@@ -1,6 +1,6 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
-from random import randrange
+from random import choice, randrange
 
 import numpy as np
 
@@ -227,3 +227,7 @@ def create_new_state(board):
 
 def create_initial_state():
     return create_new_state(create_initial_board())
+
+def generate_new_move(state):
+    possible_moves = state.possible_moves
+    return choice(possible_moves) if possible_moves else None
