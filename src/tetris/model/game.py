@@ -138,6 +138,19 @@ class Board:
 
         return Board(new_grid)
 
+    def is_row_full(self, row):
+        return not any(self.is_coord_empty(row, col) for col in range(self.col_count))
+    
+    def clear_rows(self, rows):
+        return Board(
+            np.vstack(
+                [
+                    *[[B_F for _ in range(self.col_count)] for _ in range(len(rows))], 
+                    *np.delete(self.grid, rows, axis=0)
+                ]
+            )
+        )
+
 
 def create_initial_board():
     return Board(np.zeros((20, 10), dtype=np.bool))
@@ -159,6 +172,23 @@ def can_place_at_coord(board, piece, row, col):
     return True
 
 
+def get_placement_row(board, piece, col):
+    """Determine the bottommost row in which a piece can be placed given a column.
+    
+    Pieces are automatically placed as far down as possible. Determine the row here."""
+    placement_row = 0
+    for row in range(board.row_count):
+        if not can_place_at_coord(board, piece, row, col):
+            # Break loop since the piece can't pass through existing blocks.
+            break
+        placement_row = row
+    return placement_row
+
+
+def clear_full_rows(board):
+    return board.clear_rows(tuple(row for row in range(board.row_count) if board.is_row_full(row)))
+
+
 @dataclass
 class State:
     board: Board
@@ -174,26 +204,24 @@ class State:
             if can_place_at_coord(self.board, Piece(self.piece_type, orientation), 0, col)
         ]
 
-    def play_move(self, move):
+    def play_move(self, move, should_clear_full_rows=True):
         """Produce a new state with the current piece placed and a new random piece type."""
         piece = Piece(self.piece_type, move.orientation)
 
-        # Pieces are placed as far down as possible. Determine the row here.
-        # NOTE: Breaking the loop is important since the piece can't pass through blocks.
-        placement_row = 0
-        for row in range(self.board.row_count):
-            if not can_place_at_coord(self.board, piece, row, move.column):
-                break
-            placement_row = row
-
-        return create_new_state(
-            self.board.fill_coords(
-                [
-                    (block_row + placement_row, block_col + move.column)
-                    for block_row, block_col in piece.block_coords
-                ]
-            )
+        new_board = self.board.fill_coords(
+            [
+                (
+                    block_row + get_placement_row(self.board, piece, move.column), 
+                    block_col + move.column
+                )
+                for block_row, block_col in piece.block_coords
+            ]
         )
+
+        if should_clear_full_rows:
+            new_board = clear_full_rows(new_board)
+
+        return create_new_state(new_board)
 
 
 def create_new_state(board):
