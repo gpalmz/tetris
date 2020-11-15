@@ -12,14 +12,14 @@ def get_concealed_space_count_for_coord(state, row, col):
     curr_row = row
     while state.board.is_coord_empty(curr_row + 1, col):
         curr_row += 1
-    
+
     return curr_row - row
 
 
 def get_concealed_space_count(state):
     return sum(
-        get_concealed_space_count_for_coord(state, row, col) 
-        for row, col 
+        get_concealed_space_count_for_coord(state, row, col)
+        for row, col
         in state.board.block_coords
     )
 

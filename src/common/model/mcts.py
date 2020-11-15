@@ -88,6 +88,5 @@ def mcts(task, state, create_node):
         if success_count > max_success_count:
             max_success_count = success_count
             best_action = action
-    
-    return best_action
 
+    return best_action

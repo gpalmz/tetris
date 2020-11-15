@@ -4,27 +4,7 @@ from random import randrange
 
 import numpy as np
 
-
-def safe_get(arr, idx, default=None):
-    """Get a value from a numpy.array, or return a default if out of bounds."""
-    try:
-        return arr.item(idx)
-    except IndexError:
-        return default
-
-
-def np_array_to_coords(arr, is_present):
-    """Create a list of coordinates in a numpy.array where values are present."""
-    return [coord for coord, val in np.ndenumerate(arr) if is_present(val)]
-
-
-def rotate_array_90_cw(arr, rotation_count=1):
-    """Rotates a numpy.array clockwise."""
-    rotated_grid = np.copy(arr)
-    for _ in range(rotation_count):
-        rotated_grid = np.flip(np.transpose(rotated_grid), axis=1)
-    return rotated_grid
-
+import common.util.np as np_util
 
 B_T = True
 B_F = False
@@ -103,14 +83,14 @@ class Piece:
     @property
     def grid(self):
         # fine since we know the grid is a constant size
-        return rotate_array_90_cw(
+        return np_util.arr_rotated_90_cw(
             get_grid_for_piece_type(self.piece_type),
             rotation_count=self.orientation.value,
         )
 
     @property
     def block_coords(self):
-        return np_array_to_coords(self.grid, is_block)
+        return np_util.arr_to_coords(self.grid, is_block)
 
     def __str__(self):
         # TODO: improve this?
@@ -137,7 +117,7 @@ class Board:
 
     @property
     def block_coords(self):
-        return np_array_to_coords(self.grid, is_block)
+        return np_util.arr_to_coords(self.grid, is_block)
 
     def __str__(self):
         # TODO: improve this?
@@ -147,7 +127,7 @@ class Board:
         """Determine whether a block can be placed at a given coordinate.
 
         If the coordinate is off the board, a block cannot be placed."""
-        return not is_block(safe_get(self.grid, (row, col), default=B_T))
+        return not is_block(np_util.arr_get_safe(self.grid, (row, col), default=B_T))
 
     def fill_coords(self, coords):
         """Produce a new board similar to this one but with the specified coordinates filled."""
@@ -167,9 +147,6 @@ def create_initial_board():
 class Move:
     column: int
     orientation: PieceOrientation
-
-    def __str__(self):
-        return f"Move(column={self.column}, orientation={self.orientation.value})"
 
 
 def can_place_at_coord(board, piece, row, col):
