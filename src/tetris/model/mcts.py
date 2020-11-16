@@ -60,7 +60,7 @@ class TetrisTaskNode(TaskNode):
 
 
 def get_utility_by_move(state, get_utility):
-    return [(move, get_utility(state.play_move(move)[1])) for move in state.possible_moves]
+    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
 
 
 def select_move(state):

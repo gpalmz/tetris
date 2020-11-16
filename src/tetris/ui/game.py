@@ -5,7 +5,6 @@ from tetris.model.game import PieceType, State, create_new_state, is_block, get_
 from tetris.model.mcts import select_move
 
 
-
 def get_color_for_type(piece_type):
     piece_type_colors = {
         PieceType.O: (94, 167, 143),
@@ -17,6 +16,7 @@ def get_color_for_type(piece_type):
         PieceType.I: (164, 238, 206),
     }
     return piece_type_colors[piece_type]
+
 
 class GameBoard():
 
@@ -35,13 +35,15 @@ class GameBoard():
         for i in range(4):
             for j in range(self.cols):
                 pygame.draw.rect(self.display, (255, 255, 255), [
-                                         self.square_size * j, self.square_size * i, self.square_size, self.square_size])
+                    self.square_size * j, self.square_size * i, self.square_size, self.square_size])
 
     def draw_square(self, color, x, y, has_border=False):
         if has_border:
-            pygame.draw.rect(self.display, color, [self.square_size * x, self.square_size * y, self.square_size, self.square_size], 3)
+            pygame.draw.rect(self.display, color, [
+                             self.square_size * x, self.square_size * y, self.square_size, self.square_size], 3)
         else:
-            pygame.draw.rect(self.display, color, [self.square_size * x, self.square_size * y, self.square_size, self.square_size])
+            pygame.draw.rect(self.display, color, [
+                             self.square_size * x, self.square_size * y, self.square_size, self.square_size])
 
     def play_game(self):
         pygame.init()
@@ -63,13 +65,14 @@ class GameBoard():
 
             cur_piece_type = state.piece_type
             cur_grid = get_grid_for_piece_type(cur_piece_type)
-            piece, state = state.play_move(move)
+            piece = state.get_piece_for_move(move)
+            state = state.play_piece(piece, move.col)
             placements = piece.block_placements
             piece_type = piece.piece_type
             block_color = get_color_for_type(piece_type)
 
             self.fill_offset()
-            for space in range (0, len(cur_grid)):
+            for space in range(0, len(cur_grid)):
                 for i, j in zip(range((len(cur_grid[space]))), range(self.cols // 2 - 1, self.cols // 2 - 1 + len(cur_grid[space]))):
                     if is_block(cur_grid[space][i]):
                         self.draw_square((0, 0, 0), j, (space + 1), True)
@@ -98,4 +101,3 @@ class GameBoard():
 
         time.sleep(10)
         pygame.quit()
-
