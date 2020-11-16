@@ -18,14 +18,14 @@ def get_concealed_space_count_for_coord(state, row, col):
 
 def get_concealed_space_count(state):
     return sum(
-        get_concealed_space_count_for_coord(state, row, col)
-        for row, col
-        in state.board.block_coords
+        get_concealed_space_count_for_coord(state, placement.row, placement.col)
+        for placement
+        in state.board.block_placements
     )
 
 
 def get_empty_row_count(state):
-    return min(row for row, col in state.board.block_coords)
+    return min(placement.row for placement in state.board.block_placements)
 
 
 def get_concealed_space_utility(state):

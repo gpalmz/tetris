@@ -1,17 +1,24 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
 from random import randrange
+from functools import cache
 
 import numpy as np
 
 import common.util.np as np_util
 
-B_T = True
-B_F = False
+
+@dataclass(frozen=True)
+class Block:
+    pass
 
 
-def is_block(val):
-    return val == B_T
+def make_block():
+    return Block()
+
+
+def make_space():
+    return 0
 
 
 @unique
@@ -26,39 +33,42 @@ class PieceType(Enum):
 
 
 def get_grid_for_piece_type(piece_type):
+    b = make_block
+    s = make_space
+
     if piece_type == PieceType.I:
         grid = [
-            [B_T, B_T, B_T, B_T],
+            [b(), b(), b(), b()],
         ]
     elif piece_type == PieceType.O:
         grid = [
-            [B_T, B_T],
-            [B_T, B_T],
+            [b(), b()],
+            [b(), b()],
         ]
     elif piece_type == PieceType.T:
         grid = [
-            [B_T, B_T, B_T],
-            [B_F, B_T, B_F],
+            [b(), b(), b()],
+            [s(), b(), s()],
         ]
     elif piece_type == PieceType.S:
         grid = [
-            [B_F, B_T, B_T],
-            [B_T, B_T, B_F],
+            [s(), b(), b()],
+            [b(), b(), s()],
         ]
     elif piece_type == PieceType.Z:
         grid = [
-            [B_T, B_T, B_F],
-            [B_F, B_T, B_T],
+            [b(), b(), s()],
+            [s(), b(), b()],
         ]
     elif piece_type == PieceType.J:
         grid = [
-            [B_T, B_F, B_F],
-            [B_T, B_T, B_T],
+            [b(), s(), s()],
+            [b(), b(), b()],
         ]
     elif piece_type == PieceType.L:
         grid = [
-            [B_F, B_F, B_T],
-            [B_T, B_T, B_T],
+            [s(), s(), b()],
+            [b(), b(), b()],
         ]
 
     return np.array(grid)
@@ -75,26 +85,46 @@ class PieceOrientation(Enum):
         return PieceOrientation(self.value + rotation_count % 4)
 
 
-@dataclass
+@dataclass(frozen=True)
+class GridPlacement:
+    row: int
+    col: int
+    val: "any"  # TODO: type
+
+
+def is_block(val):
+    return isinstance(val, Block)
+
+
+def get_block_placements_for_grid(grid):
+    return [GridPlacement(coord[0], coord[1], val) for coord, val in np.ndenumerate(grid) if is_block(val)]
+
+
+def get_block_grid_str(grid):
+    return str(np.vectorize(lambda v: "X" if is_block(v) else " ")(grid))
+
+
+@dataclass(frozen=True)
 class Piece:
     piece_type: PieceType
     orientation: PieceOrientation
 
     @property
+    @cache
     def grid(self):
-        # fine since we know the grid is a constant size
         return np_util.arr_rotated_90_cw(
             get_grid_for_piece_type(self.piece_type),
             rotation_count=self.orientation.value,
         )
 
     @property
-    def block_coords(self):
-        return np_util.arr_to_coords(self.grid, is_block)
+    @cache
+    def block_placements(self):
+        return get_block_placements_for_grid(self.grid)
+        
 
     def __str__(self):
-        # TODO: improve this?
-        return str(self.grid)
+        return get_block_grid_str(self.grid)
 
     def rotated_90_cw(self, rotation_count=1):
         return Piece(
@@ -103,7 +133,7 @@ class Piece:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Board:
     grid: np.array
 
@@ -116,25 +146,25 @@ class Board:
         return self.grid.shape[1]
 
     @property
-    def block_coords(self):
-        return np_util.arr_to_coords(self.grid, is_block)
+    def block_placements(self):
+        return get_block_placements_for_grid(self.grid)
 
     def __str__(self):
-        # TODO: improve this?
-        return str(self.grid)
+        return get_block_grid_str(self.grid)
 
     def is_coord_empty(self, row, col):
         """Determine whether a block can be placed at a given coordinate.
 
         If the coordinate is off the board, a block cannot be placed."""
-        return not is_block(np_util.arr_get_safe(self.grid, (row, col), default=B_T))
+        val = np_util.arr_get_safe(self.grid, (row, col))
+        return not (is_block(val) or val is None)
 
-    def fill_coords(self, coords):
+    def place(self, placements):
         """Produce a new board similar to this one but with the specified coordinates filled."""
         new_grid = np.copy(self.grid)
 
-        for row, col in coords:
-            new_grid[row, col] = B_T
+        for placement in placements:
+            new_grid[placement.row, placement.col] = placement.val
 
         return Board(new_grid)
 
@@ -145,7 +175,7 @@ class Board:
         return Board(
             np.vstack(
                 [
-                    *[[B_F for _ in range(self.col_count)] for _ in range(len(rows))], 
+                    *[[make_space() for _ in range(self.col_count)] for _ in range(len(rows))],
                     *np.delete(self.grid, rows, axis=0)
                 ]
             )
@@ -153,10 +183,10 @@ class Board:
 
 
 def create_initial_board():
-    return Board(np.zeros((20, 10), dtype=np.bool))
+    return Board(np.zeros((20, 10), dtype=np.object))
 
 
-@dataclass
+@dataclass(frozen=True)
 class Move:
     column: int
     orientation: PieceOrientation
@@ -166,8 +196,8 @@ def can_place_at_coord(board, piece, row, col):
     """Determine whether a piece can be placed in the given column.
 
     Return False if the piece overlaps another piece or is out of bounds."""
-    for block_row, block_col in piece.block_coords:
-        if not board.is_coord_empty(block_row + row, block_col + col):
+    for placement in piece.block_placements:
+        if not board.is_coord_empty(placement.row + row, placement.col + col):
             return False
     return True
 
@@ -189,7 +219,7 @@ def clear_full_rows(board):
     return board.clear_rows(tuple(row for row in range(board.row_count) if board.is_row_full(row)))
 
 
-@dataclass
+@dataclass(frozen=True)
 class State:
     board: Board
     piece_type: PieceType
@@ -208,13 +238,14 @@ class State:
         """Produce a new state with the current piece placed and a new random piece type."""
         piece = Piece(self.piece_type, move.orientation)
 
-        new_board = self.board.fill_coords(
+        new_board = self.board.place(
             [
-                (
-                    block_row + get_placement_row(self.board, piece, move.column), 
-                    block_col + move.column
+                GridPlacement(
+                    placement.row + get_placement_row(self.board, piece, move.column), 
+                    placement.col + move.column,
+                    placement.val
                 )
-                for block_row, block_col in piece.block_coords
+                for placement in piece.block_placements
             ]
         )
 

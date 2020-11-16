@@ -9,11 +9,6 @@ def arr_get_safe(arr, idx, default=None):
         return default
 
 
-def arr_to_coords(arr, is_present):
-    """Create a list of coordinates in a numpy.array where values are present."""
-    return [coord for coord, val in np.ndenumerate(arr) if is_present(val)]
-
-
 def arr_rotated_90_cw(arr, rotation_count=1):
     """Produce a numpy.array from the given array rotated clockwise."""
     rotated_grid = np.copy(arr)
