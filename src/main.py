@@ -16,7 +16,7 @@ def demo_game_stdout():
         if move is None:
             break
         else:
-            curr_state = curr_state.play_move(move)
+            curr_state = curr_state.play_move(move)[1]
         print(curr_state.board)
         print(get_concealed_space_count(curr_state))
         print(get_empty_row_count(curr_state))
@@ -28,5 +28,5 @@ def demo_game_ui():
     GameBoard(create_initial_board()).play_game()
 
 
-demo_game_stdout()
-# demo_game_ui()
+#demo_game_stdout()
+demo_game_ui()

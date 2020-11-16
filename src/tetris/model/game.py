@@ -8,7 +8,6 @@ import numpy as np
 import common.util.np as np_util
 
 
-@dataclass(frozen=True)
 class Block:
     pass
 
@@ -252,7 +251,7 @@ class State:
         if should_clear_full_rows:
             new_board = clear_full_rows(new_board)
 
-        return create_new_state(new_board)
+        return piece, create_new_state(new_board)
 
 
 def create_new_state(board):
