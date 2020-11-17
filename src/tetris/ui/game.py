@@ -30,11 +30,11 @@ def get_color_for_type(piece_type):
 class GameBoard():
 
     # TODO: parameterize all the constants above, use a factory with defaults
-    def __init__(self, state, square_size=SQUARE_SIZE):
-        self.state = state
+    def __init__(self, board, square_size=SQUARE_SIZE):
+        self.board = board
         self.square_size = square_size
-        self.cols = self.state.board.col_count
-        self.rows = self.state.board.row_count
+        self.cols = self.board.col_count
+        self.rows = self.board.row_count
         self.offset = 5
         self.height = self.cols * self.square_size
         self.width = (self.rows + self.offset) * self.square_size
@@ -58,10 +58,12 @@ class GameBoard():
         pygame.init()
         pygame.display.set_caption("Tetris")
 
+        state = create_new_state(self.board)
+
         while True:
             self.display.fill(BACKGROUND_COLOR)
 
-            move = select_move(self.state)
+            move = select_move(state)
             if move is None:
                 font = pygame.font.SysFont('Comic Sans', 20, True, False)
                 text = font.render("You lost!", True, TEXT_COLOR)
@@ -69,7 +71,7 @@ class GameBoard():
                 pygame.display.flip()
                 break
 
-            piece = self.state.get_piece_for_move(move)
+            piece = state.get_piece_for_move(move)
             piece_block_color = get_color_for_type(piece.piece_type)
 
             for placement in piece.block_placements:
@@ -80,14 +82,14 @@ class GameBoard():
                 self.draw_square(piece_block_color, col, row)
                 self.draw_square(SQUARE_BORDER_COLOR, col, row, True)
 
-            for placement in self.state.board.block_placements:
+            for placement in state.board.block_placements:
                 row = (placement.row + self.offset)
                 self.draw_square(self.block_colors[placement.val], placement.col, row)
                 self.draw_square(SQUARE_BORDER_COLOR, placement.col, row, True)
 
             pygame.display.flip()
 
-            self.state = self.state.play_piece(piece, move.col)
+            state = state.play_piece(piece, move.col)
 
             time.sleep(0.5)
 
