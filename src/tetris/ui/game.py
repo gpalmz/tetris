@@ -20,6 +20,7 @@ PIECE_TYPE_COLORS = {
     PieceType.I: (164, 238, 206),
 }
 SQUARE_BORDER_COLOR = RGB_BLACK
+TEXT_COLOR = RGB_BLACK
 
 
 def get_color_for_type(piece_type):
@@ -63,28 +64,29 @@ class GameBoard():
             move = select_move(self.state)
             if move is None:
                 font = pygame.font.SysFont('Comic Sans', 20, True, False)
-                text = font.render("You lost!", True, RGB_BLACK)
+                text = font.render("You lost!", True, TEXT_COLOR)
                 self.display.blit(text, [20, 200])
                 break
 
             piece = self.state.get_piece_for_move(move)
-            self.state = self.state.play_piece(piece, move.col)
-            block_color = get_color_for_type(piece.piece_type)
+            piece_block_color = get_color_for_type(piece.piece_type)
 
             for placement in piece.block_placements:
+                self.block_colors[placement.val] = piece_block_color
+
                 row = (placement.row + 1)
                 col = placement.col + self.cols // 2 - piece.col_count // 2
-                self.block_colors[placement.val] = block_color
-                self.draw_square(block_color, col, row)
+                self.draw_square(piece_block_color, col, row)
                 self.draw_square(SQUARE_BORDER_COLOR, col, row, True)
 
             for placement in self.state.board.block_placements:
                 row = (placement.row + self.offset)
-                cur_color = self.block_colors[placement.val]
-                self.draw_square(cur_color, placement.col, row)
+                self.draw_square(self.block_colors[placement.val], placement.col, row)
                 self.draw_square(SQUARE_BORDER_COLOR, placement.col, row, True)
 
             pygame.display.flip()
+
+            self.state = self.state.play_piece(piece, move.col)
 
             time.sleep(0.5)
 
