@@ -36,5 +36,5 @@ def demo_game_ui():
     GameBoard(create_initial_board()).play_game()
 
 
-demo_game_stdout()
-# demo_game_ui()
+# demo_game_stdout()
+demo_game_ui()
