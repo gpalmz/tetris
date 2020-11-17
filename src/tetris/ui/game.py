@@ -61,8 +61,8 @@ class GameBoard():
         for placement in piece.block_placements:
             self.draw_block(
                 get_block_color(placement.val),
-                (placement.col + self.cols // 2 -
-                 piece.col_count // 2) * self.square_size,
+                (placement.col + (self.cols - piece.col_count) // 2) *
+                self.square_size,
                 (placement.row + 1) * self.square_size,
             )
 
