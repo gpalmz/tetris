@@ -47,6 +47,7 @@ def get_empty_row_utility(state):
     return WEIGHT_EMPTY_ROW_UTILITY * get_empty_row_count(state) / state.board.row_count
 
 
+# TODO: might be better to minimize the row sum of *unfilled* squares
 def get_row_sum_utility(state):
     return WEIGHT_ROW_SUM_UTILITY * get_row_sum(state)
 
