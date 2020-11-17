@@ -4,7 +4,8 @@ import time
 from tetris.model.game import PieceType, State, create_new_state, is_block, get_grid_for_piece_type
 from tetris.model.mcts import select_move
 
-
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 def get_color_for_type(piece_type):
     piece_type_colors = {
         PieceType.O: (94, 167, 143),
@@ -34,7 +35,7 @@ class GameBoard():
     def fill_offset(self):
         for i in range(4):
             for j in range(self.cols):
-                pygame.draw.rect(self.display, (255, 255, 255), [
+                pygame.draw.rect(self.display, WHITE, [
                     self.square_size * j, self.square_size * i, self.square_size, self.square_size])
 
     def draw_square(self, color, x, y, has_border=False):
@@ -50,7 +51,7 @@ class GameBoard():
         pygame.display.set_caption("Tetris")
         died = False
         state = create_new_state(self.board)
-        self.display.fill((255, 255, 255))
+        self.display.fill(WHITE)
         pygame.display.flip()
 
         while not died:
@@ -58,43 +59,36 @@ class GameBoard():
             move = select_move(state)
             if move is None:
                 font = pygame.font.SysFont('Comic Sans', 20, True, False)
-                text = font.render("You lost!", True, (0, 0, 0))
+                text = font.render("You lost!", True, BLACK)
                 self.display.blit(text, [20, 200])
                 pygame.display.flip()
                 died = True
 
             cur_piece_type = state.piece_type
-            cur_grid = get_grid_for_piece_type(cur_piece_type)
             piece = state.get_piece_for_move(move)
+            cur_grid = piece.grid
             state = state.play_piece(piece, move.col)
             placements = piece.block_placements
             piece_type = piece.piece_type
             block_color = get_color_for_type(piece_type)
 
             self.fill_offset()
-            for space in range(0, len(cur_grid)):
+            self.display.fill(WHITE)
+            for space in range(len(cur_grid)):
                 for i, j in zip(range((len(cur_grid[space]))), range(self.cols // 2 - 1, self.cols // 2 - 1 + len(cur_grid[space]))):
                     if is_block(cur_grid[space][i]):
-                        self.draw_square((0, 0, 0), j, (space + 1), True)
                         self.draw_square(block_color, j, (space + 1))
-                    else:
-                        self.draw_square((255, 255, 255), j, (space + 1))
-
-                    pygame.display.flip()
+                        self.draw_square(BLACK, j, (space + 1), True)
+                        pygame.display.flip()
 
             for placement in placements:
                 self.block_colors[placement.val] = block_color
 
-            for i in range(self.rows):
-                for j in range(self.cols):
-                    space = state.board.grid[i][j]
-
-                    if is_block(space):
-                        cur_color = self.block_colors[space]
-                        self.draw_square((0, 0, 0), j, (i + self.offset), True)
-                        self.draw_square(cur_color, j, (i + self.offset))
-                    else:
-                        self.draw_square((255, 255, 255), j, (i + self.offset))
+            for placement in state.board.block_placements:
+                if is_block(placement.val):
+                    cur_color = self.block_colors[placement.val]
+                    self.draw_square(cur_color, placement.col, (placement.row + self.offset))
+                    self.draw_square(BLACK, placement.col, (placement.row + self.offset), True)
                     pygame.display.flip()
 
             time.sleep(0.5)
