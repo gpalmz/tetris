@@ -117,6 +117,14 @@ class Piece:
         )
 
     @property
+    def row_count(self):
+        return self.grid.shape[0]
+
+    @property
+    def col_count(self):
+        return self.grid.shape[1]
+
+    @property
     @cache
     def block_placements(self):
         return get_block_placements_for_grid(self.grid)
