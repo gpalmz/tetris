@@ -1,4 +1,4 @@
-from tetris.model.game import create_initial_board, create_initial_state
+from tetris.model.game import create_initial_state
 from tetris.model.mcts import select_move
 from tetris.model.strategy import (
     get_concealed_space_count,
@@ -25,7 +25,7 @@ def demo_game_stdout():
 
 
 def demo_game_ui():
-    GameBoard(create_initial_board()).play_game()
+    GameBoard(create_initial_state()).play_game()
 
 
 # demo_game_stdout()

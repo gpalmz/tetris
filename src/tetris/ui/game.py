@@ -29,11 +29,11 @@ def get_color_for_type(piece_type):
 class GameBoard():
 
     # TODO: parameterize all the constants above, use a factory with defaults
-    def __init__(self, board, square_size=SQUARE_SIZE):
-        self.board = board
+    def __init__(self, state, square_size=SQUARE_SIZE):
+        self.state = state
         self.square_size = square_size
-        self.cols = board.col_count
-        self.rows = board.row_count
+        self.cols = self.state.board.col_count
+        self.rows = self.state.board.row_count
         self.offset = 5
         self.height = self.cols * self.square_size
         self.width = (self.rows + self.offset) * self.square_size
@@ -56,24 +56,20 @@ class GameBoard():
     def play_game(self):
         pygame.init()
         pygame.display.set_caption("Tetris")
-        state = create_new_state(self.board)
-        self.display.fill(BACKGROUND_COLOR)
-        pygame.display.flip()
 
         while True:
-            move = select_move(state)
+            self.display.fill(BACKGROUND_COLOR)
+
+            move = select_move(self.state)
             if move is None:
                 font = pygame.font.SysFont('Comic Sans', 20, True, False)
                 text = font.render("You lost!", True, RGB_BLACK)
                 self.display.blit(text, [20, 200])
-                pygame.display.flip()
                 break
 
-            piece = state.get_piece_for_move(move)
-            state = state.play_piece(piece, move.col)
+            piece = self.state.get_piece_for_move(move)
+            self.state = self.state.play_piece(piece, move.col)
             block_color = get_color_for_type(piece.piece_type)
-
-            self.display.fill(BACKGROUND_COLOR)
 
             for placement in piece.block_placements:
                 row = (placement.row + 1)
@@ -81,14 +77,14 @@ class GameBoard():
                 self.block_colors[placement.val] = block_color
                 self.draw_square(block_color, col, row)
                 self.draw_square(SQUARE_BORDER_COLOR, col, row, True)
-                pygame.display.flip()
 
-            for placement in state.board.block_placements:
+            for placement in self.state.board.block_placements:
                 row = (placement.row + self.offset)
                 cur_color = self.block_colors[placement.val]
                 self.draw_square(cur_color, placement.col, row)
                 self.draw_square(SQUARE_BORDER_COLOR, placement.col, row, True)
-                pygame.display.flip()
+
+            pygame.display.flip()
 
             time.sleep(0.5)
 
