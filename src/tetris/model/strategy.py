@@ -1,5 +1,5 @@
 # TODO: add third criterion that favors placing stuff as low as possible
-WEIGHT_CONCEALED_SPACE_UTILITY = 80
+WEIGHT_CONCEALED_SPACE_UTILITY = 50
 WEIGHT_EMPTY_ROW_UTILITY = 1
 
 

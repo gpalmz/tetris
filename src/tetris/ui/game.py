@@ -66,6 +66,7 @@ class GameBoard():
                 font = pygame.font.SysFont('Comic Sans', 20, True, False)
                 text = font.render("You lost!", True, TEXT_COLOR)
                 self.display.blit(text, [20, 200])
+                pygame.display.flip()
                 break
 
             piece = self.state.get_piece_for_move(move)
