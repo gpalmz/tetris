@@ -1,16 +1,16 @@
 import pygame
 import time
-from tetris.model.game import PieceType, create_new_state
+from tetris.model.game import Block, PieceType, create_new_state
 from tetris.model.mcts import select_move
 
-SQUARE_SIZE = 20
+SQUARE_SIZE = 30
 SQUARE_BORDER_WIDTH = 2
 
 RGB_WHITE = (255, 255, 255)
 RGB_BLACK = (0, 0, 0)
 
 BACKGROUND_COLOR = RGB_WHITE
-PIECE_TYPE_COLORS = {
+COLOR_BY_PIECE_TYPE = {
     PieceType.O: (94, 167, 143),
     PieceType.T: (127, 183, 129),
     PieceType.S: (177, 175, 209),
@@ -22,76 +22,102 @@ PIECE_TYPE_COLORS = {
 SQUARE_BORDER_COLOR = RGB_BLACK
 TEXT_COLOR = RGB_BLACK
 
+TURN_DURATION_SEC = 0.5
+END_GAME_DURATION_SEC = 10
 
-def get_color_for_type(piece_type):
-    return PIECE_TYPE_COLORS[piece_type]
+
+def get_color_for_piece_type(piece_type):
+    return COLOR_BY_PIECE_TYPE[piece_type]
 
 
 class GameBoard():
 
-    # TODO: parameterize all the constants above, use a factory with defaults
     def __init__(self, board, square_size=SQUARE_SIZE):
         self.board = board
         self.square_size = square_size
         self.cols = self.board.col_count
         self.rows = self.board.row_count
-        self.offset = 5
-        self.height = self.cols * self.square_size
-        self.width = (self.rows + self.offset) * self.square_size
-        self.block_colors = {}
-        self.display = pygame.display.set_mode((self.height, self.width))
+        self.header_height = 5 * self.square_size
+        self.width = self.cols * self.square_size
+        self.height = self.rows * self.square_size + self.header_height
+        self.display = pygame.display.set_mode((self.width, self.height))
 
-    def draw_square(self, color, x, y, has_border=False):
+    def draw_background(self):
+        self.display.fill(BACKGROUND_COLOR)
+
+    def draw_square(self, color, x, y, outline_width=0):
         pygame.draw.rect(
-            self.display, 
-            color, 
-            [
-                self.square_size * x, 
-                self.square_size * y, 
-                self.square_size, 
-                self.square_size,
-            ], 
-            SQUARE_BORDER_WIDTH if has_border else 0,
+            self.display,
+            color,
+            [x, y, self.square_size, self.square_size],
+            outline_width,
         )
+
+    def draw_block(self, color, x, y):
+        self.draw_square(color, x, y)
+        self.draw_square(SQUARE_BORDER_COLOR, x, y, SQUARE_BORDER_WIDTH)
+
+    def draw_current_piece(self, piece, get_block_color):
+        for placement in piece.block_placements:
+            self.draw_block(
+                get_block_color(placement.val),
+                (placement.col + self.cols // 2 -
+                 piece.col_count // 2) * self.square_size,
+                (placement.row + 1) * self.square_size,
+            )
+
+    def draw_board(self, board, get_block_color):
+        for placement in board.block_placements:
+            self.draw_block(
+                get_block_color(placement.val),
+                placement.col * self.square_size,
+                placement.row * self.square_size + self.header_height,
+            )
+
+    def draw_game_over(self):
+        font = pygame.font.SysFont('Comic Sans', 20, True, False)
+        text = font.render("You lost!", True, TEXT_COLOR)
+        self.display.blit(text, [20, 200])
 
     def play_game(self):
         pygame.init()
         pygame.display.set_caption("Tetris")
 
         state = create_new_state(self.board)
+        color_by_block = {}
 
         while True:
-            self.display.fill(BACKGROUND_COLOR)
+            self.draw_background()
 
             move = select_move(state)
+
             if move is None:
-                font = pygame.font.SysFont('Comic Sans', 20, True, False)
-                text = font.render("You lost!", True, TEXT_COLOR)
-                self.display.blit(text, [20, 200])
-                pygame.display.flip()
+                self.draw_game_over()
                 break
 
             piece = state.get_piece_for_move(move)
-            piece_block_color = get_color_for_type(piece.piece_type)
 
+            # store colors for all the blocks in the piece so we can use them later
+            piece_color = get_color_for_piece_type(piece.piece_type)
             for placement in piece.block_placements:
-                self.block_colors[placement.val] = piece_block_color
+                color_by_block[placement.val] = piece_color
 
-                row = (placement.row + 1)
-                col = placement.col + self.cols // 2 - piece.col_count // 2
-                self.draw_square(piece_block_color, col, row)
-                self.draw_square(SQUARE_BORDER_COLOR, col, row, True)
-
-            for placement in state.board.block_placements:
-                row = (placement.row + self.offset)
-                self.draw_square(self.block_colors[placement.val], placement.col, row)
-                self.draw_square(SQUARE_BORDER_COLOR, placement.col, row, True)
+            self.draw_current_piece(piece, lambda b: color_by_block[b])
+            self.draw_board(state.board, lambda b: color_by_block[b])
 
             pygame.display.flip()
 
+            # advance to the next state
             state = state.play_piece(piece, move.col)
 
-            time.sleep(0.5)
+            # clear out color entries for blocks that are gone
+            current_state_blocks = set(
+                p.val for p in state.board.block_placements)
+            color_by_block = {
+                b: c for b, c in color_by_block.items() if b in current_state_blocks}
 
-        time.sleep(10)
+            time.sleep(TURN_DURATION_SEC)
+
+        pygame.display.flip()
+        time.sleep(END_GAME_DURATION_SEC)
         pygame.quit()
