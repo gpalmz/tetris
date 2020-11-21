@@ -1,7 +1,7 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
 from random import randrange
-from functools import cache
+from functools import cached_property
 
 import numpy as np
 
@@ -108,8 +108,7 @@ class Piece:
     piece_type: PieceType
     orientation: PieceOrientation
 
-    @property
-    @cache
+    @cached_property
     def grid(self):
         return np_util.arr_rotated_90_cw(
             get_grid_for_piece_type(self.piece_type),
@@ -124,8 +123,7 @@ class Piece:
     def col_count(self):
         return self.grid.shape[1]
 
-    @property
-    @cache
+    @cached_property
     def block_placements(self):
         return get_block_placements_for_grid(self.grid)
 
@@ -151,7 +149,7 @@ class Board:
     def col_count(self):
         return self.grid.shape[1]
 
-    @property
+    @cached_property
     def block_placements(self):
         return get_block_placements_for_grid(self.grid)
 

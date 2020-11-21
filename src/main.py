@@ -8,7 +8,7 @@ from tetris.model.strategy import (
     get_empty_row_utility,
     get_row_sum_utility,
 )
-from tetris.ui.game import GameBoard
+from tetris.ui.game import GameDisplay, pygame_session
 
 
 def demo_game_stdout():
@@ -33,7 +33,8 @@ def demo_game_stdout():
 
 
 def demo_game_ui():
-    GameBoard(create_initial_board()).play_game()
+    with pygame_session():
+        GameDisplay(create_initial_board()).play_game()
 
 
 # demo_game_stdout()
