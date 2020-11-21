@@ -1,6 +1,6 @@
 from tetris.model.game import create_initial_state, create_initial_board
-from tetris.model.mcts import select_move
 from tetris.model.strategy import (
+    select_move,
     get_concealed_space_count,
     get_empty_row_count,
     get_row_sum,

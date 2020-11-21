@@ -1,7 +1,7 @@
 import pygame
 import time
 from tetris.model.game import Block, PieceType, create_new_state
-from tetris.model.mcts import select_move
+from tetris.model.strategy import select_move
 
 SQUARE_SIZE = 30
 SQUARE_BORDER_WIDTH = 2

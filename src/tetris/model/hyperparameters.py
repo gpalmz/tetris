@@ -4,7 +4,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.svm import SVR
 
 from tetris.model.game import create_initial_state
-from tetris.model.mcts import select_move
+from tetris.model.strategy import select_move
 
 
 RANGE_WEIGHT_CONCEALED_SPACE_UTILITY = np.arange(0, 300, 1)

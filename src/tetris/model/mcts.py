@@ -1,14 +1,7 @@
 import random
 from dataclasses import dataclass
 
-from common.util.iter import max_by
 from common.model.mcts import Task, TaskState, TaskNode, mcts
-from tetris.model.strategy import (
-    get_complex_utility,
-    WEIGHT_CONCEALED_SPACE_UTILITY,
-    WEIGHT_EMPTY_ROW_UTILITY,
-    WEIGHT_ROW_SUM_UTILITY,
-)
 from tetris.model.game import State
 
 
@@ -62,22 +55,6 @@ class TetrisTaskNode(TaskNode):
 
     def back_propagate(self, result):
         pass
-
-
-def get_utility_by_move(state, get_utility):
-    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
-
-
-# TODO: move this to somewhere else, probably strategy
-def select_move(
-    state,
-    weight_concealed_space_utility=WEIGHT_CONCEALED_SPACE_UTILITY,
-    weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
-    weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
-):
-    # for now just return the best move, later maybe we'll work in probability
-    utility_by_move = get_utility_by_move(state, get_complex_utility)
-    return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
 
 
 @dataclass

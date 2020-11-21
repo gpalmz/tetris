@@ -1,5 +1,7 @@
 import math
 
+from common.util.iter import max_by
+
 WEIGHT_CONCEALED_SPACE_UTILITY = 50
 WEIGHT_EMPTY_ROW_UTILITY = 1
 WEIGHT_ROW_SUM_UTILITY = 0.0001
@@ -58,3 +60,18 @@ def get_complex_utility(
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
     return get_concealed_space_utility(state) + get_empty_row_utility(state) + get_row_sum_utility(state)
+
+
+def get_utility_by_move(state, get_utility):
+    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
+
+
+def select_move(
+    state,
+    weight_concealed_space_utility=WEIGHT_CONCEALED_SPACE_UTILITY,
+    weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
+    weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
+):
+    # for now just return the best move, later maybe we'll work in probability
+    utility_by_move = get_utility_by_move(state, get_complex_utility)
+    return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
