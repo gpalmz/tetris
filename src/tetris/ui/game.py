@@ -53,6 +53,7 @@ def pygame_session():
 @dataclass
 class GameDisplay:
     board: Any
+    player: Any
     square_size: Any = SQUARE_SIZE
     square_border_width: Any = SQUARE_BORDER_WIDTH
     square_border_color: Any = SQUARE_BORDER_COLOR
@@ -143,7 +144,7 @@ class GameDisplay:
         color_by_block = {}
 
         while True:
-            move = select_move(state)
+            move = self.player.get_move(state, None)  # TODO: task
 
             piece = state.get_piece_for_move(move) if move else Piece(
                 state.piece_type, PieceOrientation.UP)

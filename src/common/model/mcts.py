@@ -1,16 +1,14 @@
 import copy
+import math
 from dataclasses import dataclass
 from abc import ABC, abstractmethod, abstractproperty
+from typing import Optional
 
 
 @dataclass
 class Task(ABC):
     @abstractproperty
     def time_remaining(self):
-        pass
-
-    @abstractmethod
-    def start(self):
         pass
 
 
@@ -29,10 +27,22 @@ class TaskState(ABC):
         pass
 
 
+# TODO: fuck around with this
+UCB_C = math.sqrt(2)
+
+
+def get_value_ucb(node):
+    u = node.playout_utility_sum
+    n = node.playout_count
+    # TODO: is this the correct handling when no parent?
+    parent_n = node.parent.playout_count if node.parent else 0
+    return u / n + UCB_C * math.sqrt(math.log(parent_n) / n)
+
+
 @dataclass
 class TaskNode(TaskState, ABC):
     state: TaskState
-    parent: 'TaskNode'
+    parent: Optional['TaskNode']
 
     def is_terminal(self):
         return self.state.is_terminal
@@ -47,11 +57,13 @@ class TaskNode(TaskState, ABC):
         return child
 
     @abstractproperty
-    def success_count(self):
+    def playout_utility_sum(self):
+        """The sum of the utilities of playouts going through this node."""
         pass
 
     @abstractproperty
-    def failure_count(self):
+    def playout_count(self):
+        """The number of playouts going through this node."""
         pass
 
     @abstractmethod

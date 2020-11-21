@@ -1,6 +1,8 @@
 import math
+from dataclasses import dataclass
 
 from common.util.iter import max_by
+from tetris.model.gameplay import Player
 
 WEIGHT_CONCEALED_SPACE_UTILITY = 50
 WEIGHT_EMPTY_ROW_UTILITY = 1
@@ -75,3 +77,11 @@ def select_move(
     # for now just return the best move, later maybe we'll work in probability
     utility_by_move = get_utility_by_move(state, get_complex_utility)
     return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
+
+
+@dataclass
+class SimplePlayer(Player):
+    """A Tetris player that uses hardcoded logic."""
+
+    def get_move(self, state, timer):
+        return select_move(state)

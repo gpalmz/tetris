@@ -3,17 +3,14 @@ from dataclasses import dataclass
 
 from common.model.mcts import Task, TaskState, TaskNode, mcts
 from tetris.model.game import State
+from tetris.model.gameplay import Player, MoveTimer
 
 
-# TODO: store a countdown timer, set it running when the task is started
 @dataclass
-class TetrisMoveTask(Task):
-    @property
-    def time_remaining(self):
-        return 1
-
-    def start(self):
-        pass
+class TetrisMoveTask(Task, MoveTimer):
+    """A task for providing a move in a certain time frame"""
+    # Task functionality inherited from MoveTimer
+    pass
 
 
 @dataclass
@@ -33,14 +30,13 @@ class TetrisTaskState(TaskState):
         self.state.play_move(action)
 
 
+# TODO: fill this out
 @dataclass
 class TetrisTaskNode(TaskNode):
-    @property
-    def success_count(self):
+    def playout_utility_sum(self):
         pass
 
-    @property
-    def failure_count(self):
+    def playout_count(self):
         pass
 
     def select_leaf(self):
@@ -50,7 +46,6 @@ class TetrisTaskNode(TaskNode):
         pass
 
     def simulate(self):
-        # explore playouts stemming from the current state
         pass
 
     def back_propagate(self, result):
@@ -58,6 +53,8 @@ class TetrisTaskNode(TaskNode):
 
 
 @dataclass
-class TetrisMctsPlayer:
-    def get_move(self, task, state):
-        return mcts(task, TetrisTaskState(state), TetrisTaskNode)
+class TetrisMctsPlayer(Player):
+    """A Tetris player that uses the Monte Carlo Tree Search algorithm."""
+
+    def get_move(self, state, timer):
+        return mcts(timer, TetrisTaskState(state), TetrisTaskNode)

@@ -7,6 +7,7 @@ from tetris.model.strategy import (
     get_concealed_space_utility,
     get_empty_row_utility,
     get_row_sum_utility,
+    SimplePlayer,
 )
 from tetris.ui.game import GameDisplay, pygame_session
 
@@ -34,7 +35,7 @@ def demo_game_stdout():
 
 def demo_game_ui():
     with pygame_session():
-        GameDisplay(create_initial_board()).play_game()
+        GameDisplay(create_initial_board(), SimplePlayer()).play_game()
 
 
 # demo_game_stdout()
