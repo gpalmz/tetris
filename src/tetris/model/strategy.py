@@ -6,9 +6,9 @@ import rx
 from common.util.iter import max_by
 from tetris.model.gameplay import Player
 
-WEIGHT_CONCEALED_SPACE_UTILITY = 151
-WEIGHT_EMPTY_ROW_UTILITY = 6
-WEIGHT_ROW_SUM_UTILITY = 0
+WEIGHT_CONCEALED_SPACE_UTILITY = 314
+WEIGHT_EMPTY_ROW_UTILITY = 19.53
+WEIGHT_ROW_SUM_UTILITY = 0.0056500000000000005
 
 
 def get_concealed_space_count_for_coord(state, row, col):
@@ -63,11 +63,11 @@ def get_complex_utility(
     weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
-    return get_concealed_space_utility(state) + get_empty_row_utility(state) + get_row_sum_utility(state)
+    return get_concealed_space_utility(state, weight_concealed_space_utility) + get_empty_row_utility(state, weight_empty_row_utility) + get_row_sum_utility(state, weight_row_sum_utility)
 
 
-def get_utility_by_move(state, get_utility):
-    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
+def get_utility_by_move(state, get_utility, weight_concealed_space_utility, weight_empty_row_utility, weight_row_sum_utility):
+    return [(move, get_utility(state.play_move(move), weight_concealed_space_utility, weight_empty_row_utility, weight_row_sum_utility)) for move in state.possible_moves]
 
 
 import time 
@@ -78,7 +78,7 @@ def select_move(
     weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
-    utility_by_move = get_utility_by_move(state, get_complex_utility)
+    utility_by_move = get_utility_by_move(state, get_complex_utility, weight_concealed_space_utility, weight_empty_row_utility, weight_row_sum_utility)
     # return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
     # TODO: revert when done testing
     moves = [move for move, utility in sorted(utility_by_move, key=lambda item: item[1])] if utility_by_move else [None]

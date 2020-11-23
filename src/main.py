@@ -43,8 +43,8 @@ def demo_game_ui():
         GameDisplay(create_initial_board(), SimplePlayer()).play_game()
 
 
-param_search()
-"""
+#param_search()
+
 # demo_game_stdout()
 demo_game_ui()
 
@@ -83,4 +83,3 @@ p.get_move_obs(None, None).pipe(
 for _ in range(10):
     print('hello')
     sleep(1)
-"""

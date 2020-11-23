@@ -8,10 +8,9 @@ from tetris.model.game import create_initial_state
 from tetris.model.strategy import select_move
 
 
-RANGE_WEIGHT_CONCEALED_SPACE_UTILITY = np.arange(0, 300, 20)
-RANGE_WEIGHT_EMPTY_ROW_UTILITY = np.arange(0, 10, 1)
-RANGE_WEIGHT_ROW_SUM_UTILITY = np.arange(0, 0.1, 0.01)
-
+RANGE_WEIGHT_CONCEALED_SPACE_UTILITY = np.arange(0, 500, 1)
+RANGE_WEIGHT_EMPTY_ROW_UTILITY = np.arange(0, 20, 0.01)
+RANGE_WEIGHT_ROW_SUM_UTILITY = np.arange(0, 0.01, 0.00001)
 
 def get_turns_alive_count(
     weight_concealed_space_utility,
@@ -43,9 +42,6 @@ def get_turns_alive_count(
 class GameClassifier(BaseEstimator, RegressorMixin):  
 
     def __init__(self, weight_concealed_space_utility=0, weight_empty_row_utility=0, weight_row_sum_utility=0):
-        """
-        Called when initializing the classifier
-        """
         self.weight_concealed_space_utility = weight_concealed_space_utility
         self.weight_empty_row_utility = weight_empty_row_utility
         self.weight_row_sum_utility = weight_row_sum_utility
@@ -64,18 +60,18 @@ class GameClassifier(BaseEstimator, RegressorMixin):
         return(sum(self.predict(X))) 
 
 
-def param_search(concealed_util=RANGE_WEIGHT_CONCEALED_SPACE_UTILITY, empty_util=RANGE_WEIGHT_EMPTY_ROW_UTILITY, row_sum_util=RANGE_WEIGHT_ROW_SUM_UTILITY):
-    gs = GridSearchCV(
-        cv=3,
+def param_search(n_iter=20, concealed_util=RANGE_WEIGHT_CONCEALED_SPACE_UTILITY, empty_util=RANGE_WEIGHT_EMPTY_ROW_UTILITY, row_sum_util=RANGE_WEIGHT_ROW_SUM_UTILITY):
+    gs = RandomizedSearchCV(
         GameClassifier(),
-        n_jobs=-1,
-        param_grid=dict(
+        dict(
             weight_concealed_space_utility=concealed_util,
             weight_empty_row_utility=empty_util,
             weight_row_sum_utility=row_sum_util,
         ),
+        n_iter=n_iter,
     )
 
-    gs.fit([1 for i in range(5)], y=[1 for i in range(5)])
-    print(gs.best_params)
-    return gs.best_params
+    gs.fit([1 for i in range(50)], y=[1 for i in range(50)])
+    print(gs.best_params_)
+    print(gs.best_score_)
+    return gs.best_params_, gs.best_score_
