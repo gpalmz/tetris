@@ -19,7 +19,7 @@ from tetris.model.game import (
     Piece,
     create_new_state,
 )
-from tetris.model.strategy import select_move
+from tetris.model.gameplay import MoveTimer
 
 RGB_WHITE = (255, 255, 255)
 RGB_BLACK = (0, 0, 0)
@@ -177,11 +177,11 @@ class GameDisplay:
             else:
                 self.is_playing = False
 
-        self.player.get_move_obs(state, None).pipe(
+        self.player.get_move_obs(state, MoveTimer(1000)).pipe(
             subscribe_on(thread_pool_scheduler),
             observe_on(ui_scheduler),
         ).subscribe(
-        # self.player.get_move_obs(turn.state, None).subscribe(
+        # self.player.get_move_obs(state, MoveTimer(1000)).subscribe(
             on_next=add_move,
             on_completed=play_final_move,
         )

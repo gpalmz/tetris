@@ -66,8 +66,12 @@ def get_complex_utility(
     return get_concealed_space_utility(state) + get_empty_row_utility(state) + get_row_sum_utility(state)
 
 
-def get_utility_by_move(state, get_utility):
-    return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
+def get_utility_by_move(state, get_utility, possible_moves=None):
+    # TODO: default is here for now to work with mcts, clean this up
+    if possible_moves is None:
+        possible_moves = state.possible_moves
+        
+    return [(move, get_utility(state.play_move(move))) for move in possible_moves]
 
 
 import time 
@@ -77,8 +81,9 @@ def select_move(
     weight_concealed_space_utility=WEIGHT_CONCEALED_SPACE_UTILITY,
     weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
+    possible_moves=None,
 ):
-    utility_by_move = get_utility_by_move(state, get_complex_utility)
+    utility_by_move = get_utility_by_move(state, get_complex_utility, possible_moves=possible_moves)
     # return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
     # TODO: revert when done testing
     moves = [move for move, utility in sorted(utility_by_move, key=lambda item: item[1])] if utility_by_move else [None]
