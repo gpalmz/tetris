@@ -20,6 +20,7 @@ class TaskState(ABC):
     def is_terminal(self):
         pass
 
+    # TODO: rename to possible_actions?
     @abstractproperty
     def actions(self):
         pass
@@ -43,9 +44,13 @@ class TaskNode(ABC):
     def children(self):
         return self.action_to_child.values()
 
+    @property
+    def explored_actions(self):
+        return self.action_to_child.keys()
+
     def select(self, get_value):
         # if we don't have a child for every possible action, select this node
-        if not len(self.children) == len(self.state.actions):
+        if not len(self.explored_actions) == len(self.state.actions):
             return self
         else:
             return max_by(self.children, get=get_value).select(get_value)

@@ -40,8 +40,10 @@ class TetrisTaskState(TaskState):
 class TetrisTaskNode(TaskNode):
 
     def expand(self):
+        explored_actions = set(self.explored_actions)
         # TODO: will there ever be a null action here? If so, this will error
-        action = list(select_move(self.state.actions))[-1]
+        unexplored_actions = [a for a in self.state.actions if a not in explored_actions]
+        action = list(select_move(unexplored_actions))[-1]
         child = TetrisTaskNode(self.state.perform_action(action), parent=self)
         self.child_by_action[action] = child
         return child
