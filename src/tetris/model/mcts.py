@@ -1,11 +1,15 @@
 import random
 from dataclasses import dataclass
+from functools import cached_property
 
 import rx
 
 from common.model.mcts import Task, TaskState, TaskNode, mcts
 from tetris.model.game import State
 from tetris.model.gameplay import Player, MoveTimer
+from tetris.model.strategy import select_move
+
+MAX_PLAYOUT_TURNS = 1000
 
 
 @dataclass
@@ -24,34 +28,34 @@ class TetrisTaskState(TaskState):
     def is_terminal(self):
         return not self.actions
 
-    @property
+    @cached_property
     def actions(self):
         return self.state.possible_moves
 
     def perform_action(self, action):
-        self.state.play_move(action)
+        return TetrisTaskState(self.state.play_move(action))
 
 
-# TODO: fill this out
 @dataclass
 class TetrisTaskNode(TaskNode):
-    def playout_utility_sum(self):
-        pass
-
-    def playout_count(self):
-        pass
-
-    def select_leaf(self):
-        pass
 
     def expand(self):
-        pass
+        # TODO: will there ever be a null action here? If so, this will error
+        action = list(select_move(self.state.actions))[-1]
+        child = TetrisTaskNode(self.state.perform_action(action), parent=self)
+        self.child_by_action[action] = child
+        return child
 
     def simulate(self):
-        pass
+        state = self.state
 
-    def back_propagate(self, result):
-        pass
+        for i in range(MAX_PLAYOUT_TURNS):
+            if state.is_terminal:
+                break
+            state = state.perform_action(list(select_move(state.actions))[-1])
+
+        # return the number of iterations as the value for the playout
+        return i
 
 
 @dataclass
@@ -59,4 +63,4 @@ class TetrisMctsPlayer(Player):
     """A Tetris player that uses the Monte Carlo Tree Search algorithm."""
 
     def get_move_obs(self, state, timer):
-        return rx.from_iterable(mcts(timer, TetrisTaskState(state), TetrisTaskNode))
+        return rx.from_iterable(mcts(timer, TetrisTaskNode(TetrisTaskState(state))))
