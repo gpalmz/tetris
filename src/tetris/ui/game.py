@@ -1,11 +1,17 @@
 import time
+import multiprocessing
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any
 
 import pygame
+import rx
+from rx.operators import subscribe_on, observe_on
+from rx.scheduler import ThreadPoolScheduler
+from rx.scheduler.mainloop import PyGameScheduler
 
+from common.util.iter import safe_get
 from tetris.model.game import (
     Block,
     PieceType,
@@ -39,6 +45,9 @@ COLOR_BY_PIECE_TYPE = {
 
 TURN_DURATION_SEC = 0.5
 END_GAME_DURATION_SEC = 10
+
+ui_scheduler = PyGameScheduler(pygame)
+thread_pool_scheduler = ThreadPoolScheduler(multiprocessing.cpu_count())
 
 
 @contextmanager
@@ -126,48 +135,78 @@ class GameDisplay:
         self.display.blit(self.text_font_primary.render(
             "You lost!", True, self.text_color), (10, 10))
 
-    def display_game(self, board, move, piece, get_block_color):
+    def display_game(self, board, piece, is_game_over, get_block_color):
+        print('rendering')
         self.draw_background()
 
         self.draw_current_piece(piece, get_block_color)
         self.draw_board(board, get_block_color)
 
-        if not move:
+        if is_game_over:
             self.draw_game_over()
 
         pygame.display.flip()
 
-    def play_game(self):
-        pygame.display.set_caption("Tetris")
+    # TODO: rename?
+    def subscribe_turn(self, state, color_by_block):
+        moves = []
 
-        state = create_new_state(self.board)
-        color_by_block = {}
+        def add_move(move):
+            moves.append(move)
+            print('move added:', move)
 
-        while True:
-            move = self.player.get_move(state, None)  # TODO: task
+        def play_final_move():
+            print('move count:', len(moves))
+            
+            # assume most recent move is best
+            # TODO: figure out if something is wrong here; get rid of safe_get if possible
+            move = safe_get(moves, -1)
 
-            piece = state.get_piece_for_move(move) if move else Piece(
-                state.piece_type, PieceOrientation.UP)
+            piece = state.get_piece_for_move(move) if move else Piece(state.piece_type, PieceOrientation.UP)
 
             # store colors for all the blocks in the piece so we can use them later
             piece_color = self.get_color_for_piece_type(state.piece_type)
-            for placement in piece.block_placements:
-                color_by_block[placement.val] = piece_color
+            color_by_block.update({p.val: piece_color for p in piece.block_placements})
 
-            self.display_game(state.board, move, piece,
-                              lambda b: color_by_block[b])
+            print('adding display state')
+            self.game_display_states.append((state.board, piece, not move, lambda b: color_by_block[b]))
 
-            if not move:
-                break
+            # TODO: clean deleted blocks out of color_by_block
+            if move:
+                self.subscribe_turn(state.play_piece(piece, move.col), {**color_by_block})
+            else:
+                self.is_playing = False
 
-            state = state.play_piece(piece, move.col)
+        self.player.get_move_obs(state, None).pipe(
+            subscribe_on(thread_pool_scheduler),
+            observe_on(ui_scheduler),
+        ).subscribe(
+        # self.player.get_move_obs(turn.state, None).subscribe(
+            on_next=add_move,
+            on_completed=play_final_move,
+        )
 
-            # clear out color entries for blocks that are gone
-            current_state_blocks = set(
-                p.val for p in state.board.block_placements)
-            color_by_block = {
-                b: c for b, c in color_by_block.items() if b in current_state_blocks}
+    def play_game(self):
+        pygame.display.set_caption("Tetris")
 
-            time.sleep(self.turn_duration_sec)
+        self.is_playing = True
+        self.game_display_states = []
 
+        self.subscribe_turn(create_new_state(self.board), {})
+
+        while self.is_playing:
+            # print('main loop')
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+
+            while self.game_display_states:
+                self.display_game(*self.game_display_states.pop())
+                time.sleep(self.turn_duration_sec)
+
+            ui_scheduler.run()
+        
+        if self.game_display_states:
+            self.display_game(*self.game_display_states.pop())
+        
         time.sleep(self.end_game_duration_sec)

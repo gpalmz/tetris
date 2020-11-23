@@ -30,3 +30,10 @@ def min_by(iterable, get=identity):
 
 def max_by(iterable, get=identity):
     return best_by(iterable, operator.gt, get=get)
+
+
+def safe_get(subscriptable, key, default=None):
+    try:
+        return subscriptable[key]
+    except LookupError:
+        return default

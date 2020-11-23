@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 class Player(ABC):
     @abstractmethod
-    def get_move(self, state, task):
+    def get_move_obs(self, state, task):
         pass
 
 

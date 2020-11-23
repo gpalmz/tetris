@@ -101,4 +101,5 @@ def mcts(task, state, create_node):
             max_success_count = success_count
             best_action = action
 
-    return best_action
+    # TODO: make this yield at intermediate steps too
+    yield best_action

@@ -1,6 +1,8 @@
 import math
 from dataclasses import dataclass
 
+import rx
+
 from common.util.iter import max_by
 from tetris.model.gameplay import Player
 
@@ -68,20 +70,25 @@ def get_utility_by_move(state, get_utility):
     return [(move, get_utility(state.play_move(move))) for move in state.possible_moves]
 
 
+import time 
+
 def select_move(
     state,
     weight_concealed_space_utility=WEIGHT_CONCEALED_SPACE_UTILITY,
     weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
-    # for now just return the best move, later maybe we'll work in probability
     utility_by_move = get_utility_by_move(state, get_complex_utility)
-    return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
+    # return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
+    # TODO: revert when done testing
+    moves = [move for move, utility in sorted(utility_by_move, key=lambda item: item[1])] if utility_by_move else [None]
+    for move in moves:
+        yield move
 
 
 @dataclass
 class SimplePlayer(Player):
     """A Tetris player that uses hardcoded logic."""
 
-    def get_move(self, state, timer):
-        return select_move(state)
+    def get_move_obs(self, state, timer):
+        return rx.from_iterable(select_move(state))

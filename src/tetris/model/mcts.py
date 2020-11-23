@@ -1,6 +1,8 @@
 import random
 from dataclasses import dataclass
 
+import rx
+
 from common.model.mcts import Task, TaskState, TaskNode, mcts
 from tetris.model.game import State
 from tetris.model.gameplay import Player, MoveTimer
@@ -56,5 +58,5 @@ class TetrisTaskNode(TaskNode):
 class TetrisMctsPlayer(Player):
     """A Tetris player that uses the Monte Carlo Tree Search algorithm."""
 
-    def get_move(self, state, timer):
-        return mcts(timer, TetrisTaskState(state), TetrisTaskNode)
+    def get_move_obs(self, state, timer):
+        return rx.from_iterable(mcts(timer, TetrisTaskState(state), TetrisTaskNode))
