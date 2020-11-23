@@ -15,7 +15,7 @@ from tetris.model.strategy import (
     SimplePlayer,
 )
 from tetris.ui.game import GameDisplay, pygame_session
-
+from tetris.model.hyperparameters import param_search
 
 def demo_game_stdout():
     curr_state = create_initial_state()
@@ -43,6 +43,8 @@ def demo_game_ui():
         GameDisplay(create_initial_board(), SimplePlayer()).play_game()
 
 
+param_search()
+"""
 # demo_game_stdout()
 demo_game_ui()
 
@@ -63,6 +65,7 @@ def get_thread_pool_scheduler():
     return ThreadPoolScheduler(multiprocessing.cpu_count())
 
 
+
 scheduler = get_thread_pool_scheduler()
 
 p = Player()
@@ -80,3 +83,4 @@ p.get_move_obs(None, None).pipe(
 for _ in range(10):
     print('hello')
     sleep(1)
+"""

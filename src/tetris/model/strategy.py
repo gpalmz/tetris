@@ -6,9 +6,9 @@ import rx
 from common.util.iter import max_by
 from tetris.model.gameplay import Player
 
-WEIGHT_CONCEALED_SPACE_UTILITY = 50
-WEIGHT_EMPTY_ROW_UTILITY = 1
-WEIGHT_ROW_SUM_UTILITY = 0.0001
+WEIGHT_CONCEALED_SPACE_UTILITY = 151
+WEIGHT_EMPTY_ROW_UTILITY = 6
+WEIGHT_ROW_SUM_UTILITY = 0
 
 
 def get_concealed_space_count_for_coord(state, row, col):
