@@ -36,12 +36,13 @@ def get_concealed_space_count(state):
 
 def get_empty_row_count(state):
     """Produce the number of empty rows."""
-    return min(placement.row for placement in state.board.block_placements or [])
+    placements = state.board.block_placements
+    return min(p.row for p in placements) if placements else state.board.row_count
 
 
 def get_row_sum(state):
     """Produce the sum of the row indices of all blocks."""
-    return sum(placement.row for placement in state.board.block_placements)
+    return sum(p.row for p in state.board.block_placements)
 
 
 def get_concealed_space_utility(state, weight=WEIGHT_CONCEALED_SPACE_UTILITY):
@@ -65,13 +66,6 @@ def get_complex_utility(
 ):
     return get_concealed_space_utility(state, weight_concealed_space_utility) + get_empty_row_utility(state, weight_empty_row_utility) + get_row_sum_utility(state, weight_row_sum_utility)
 
-
-def get_utility_by_move(state, get_utility, weight_concealed_space_utility, weight_empty_row_utility, weight_row_sum_utility, possible_moves=None):
-    if possible_moves is None:
-        possible_moves = state.possible_moves
-        
-    return [(move, get_utility(state.play_move(move), weight_concealed_space_utility, weight_empty_row_utility, weight_row_sum_utility)) for move in possible_moves]
-
  
 def select_move(
     state,
@@ -80,12 +74,29 @@ def select_move(
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
     possible_moves=None,
 ):
-    utility_by_move = get_utility_by_move(state, get_complex_utility, weight_concealed_space_utility, weight_empty_row_utility, weight_row_sum_utility, possible_moves=possible_moves)
-    # return max_by(utility_by_move, lambda item: item[1])[0] if utility_by_move else None
-    # TODO: revert when done testing
-    moves = [move for move, utility in sorted(utility_by_move, key=lambda item: item[1])] if utility_by_move else [None]
-    for move in moves:
-        yield move
+
+    if possible_moves is None:
+        possible_moves = state.possible_moves
+        
+    return (
+        max_by(
+            [
+                (
+                    move,
+                    get_complex_utility(
+                        state.play_move(move), 
+                        weight_concealed_space_utility, 
+                        weight_empty_row_utility, 
+                        weight_row_sum_utility,
+                    )
+                ) 
+                for move in possible_moves
+            ], 
+            lambda item: item[1],
+        )[0]
+        if possible_moves
+        else None
+    )
 
 
 @dataclass
@@ -93,4 +104,4 @@ class SimplePlayer(Player):
     """A Tetris player that uses hardcoded logic."""
 
     def get_move_obs(self, state, timer):
-        return rx.from_iterable(select_move(state))
+        return rx.of(select_move(state))

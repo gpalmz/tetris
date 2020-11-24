@@ -1,3 +1,4 @@
+# TODO: go through everywhere that uses min and max and make sure empty sequence isn't passed
 from rx import operators as ops
 from rx.scheduler import ThreadPoolScheduler
 import rx
@@ -50,7 +51,7 @@ from tetris.model.gameplay import MoveTimer
 
 def run_mcts():
     state = create_initial_state()
-    timer = MoveTimer(100)
+    timer = MoveTimer(1000)
     for move in mcts(timer, TetrisTaskNode(TetrisTaskState(state))):
         print(move)
 

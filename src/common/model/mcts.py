@@ -20,9 +20,8 @@ class TaskState(ABC):
     def is_terminal(self):
         pass
 
-    # TODO: rename to possible_actions?
     @abstractproperty
-    def actions(self):
+    def possible_actions(self):
         pass
 
     @abstractmethod
@@ -45,8 +44,12 @@ class TaskNode(ABC):
         return self.action_to_child.values()
 
     @property
-    def actions(self):
-        return self.state.actions
+    def possible_actions(self):
+        return self.state.possible_actions
+
+    @property
+    def is_terminal(self):
+        return self.state.is_terminal
 
     @property
     def explored_actions(self):
@@ -54,7 +57,7 @@ class TaskNode(ABC):
 
     def select(self, get_value):
         # if we don't have a child for every possible action, select this node
-        if not self.actions or len(self.explored_actions) < len(self.actions):
+        if not self.possible_actions or len(self.explored_actions) < len(self.possible_actions):
             return self
         else:
             return max_by(self.children, get=get_value).select(get_value)
@@ -81,18 +84,18 @@ class TaskNode(ABC):
 
 
 # TODO: fuck around with this
-UCB_C = math.sqrt(2)
+UCT_C = math.sqrt(2)
 
 
-def get_selection_value_ucb(node: TaskNode):
+def get_selection_value_uct(node: TaskNode):
     n = node.playout_count
     u = node.playout_utility_sum
     # TODO: is this the correct handling when no parent?
     parent_n = node.parent.playout_count if node.parent else 0
-    return u / n + UCB_C * math.sqrt(math.log(parent_n) / n)
+    return u / n + UCT_C * math.sqrt(math.log(parent_n) / n)
 
 
-def mcts(task, tree, get_node_selection_value=get_selection_value_ucb):
+def mcts(task, tree, get_node_selection_value=get_selection_value_uct):
     """Run the Monte Carlo Tree Search algorithm to determine the best action 
     at a given state.
 
@@ -100,8 +103,16 @@ def mcts(task, tree, get_node_selection_value=get_selection_value_ucb):
     of a node in the selection phase of the algorithm."""
 
     while task.time_remaining:
-        child = tree.select(get_node_selection_value).expand()
-        child.back_propagate(child.simulate())
+        selected_node = tree.select(get_node_selection_value)
+        if selected_node.is_terminal:
+            # impossible to expand a terminal node; no possible actions
+            # TODO: think more about what to do in this case and when it 
+            # should come up. it should definitely come up with the tree 
+            # passed in is a terminal node.
+            break
+        else:
+            child = selected_node.expand()
+            child.back_propagate(child.simulate())
 
         # at each iteration we yield the best action so far
         yield max_by(tree.action_to_child.items(), get=lambda e: e[1].playout_count)[0]
