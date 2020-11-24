@@ -15,7 +15,7 @@ from tetris.model.strategy import (
 )
 from tetris.model.mcts import TetrisMctsPlayer
 from tetris.ui.game import GameDisplay, pygame_session
-
+from tetris.model.hyperparameters import param_search
 
 def demo_game_stdout():
     curr_state = create_initial_state()
@@ -58,3 +58,4 @@ def run_mcts():
 # demo_game_stdout()
 demo_game_ui()
 # run_mcts()
+#param_search()
