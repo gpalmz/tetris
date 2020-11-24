@@ -40,7 +40,7 @@ def demo_game_stdout():
 
 def demo_game_ui():
     with pygame_session():
-        GameDisplay(create_initial_board(), SimplePlayer()).play_game()
+        GameDisplay(create_initial_board(), TetrisMctsPlayer()).play_game()
 
 
 from common.model.mcts import mcts
@@ -50,7 +50,7 @@ from tetris.model.gameplay import MoveTimer
 
 def run_mcts():
     state = create_initial_state()
-    timer = MoveTimer(1000)
+    timer = MoveTimer(100)
     for move in mcts(timer, TetrisTaskNode(TetrisTaskState(state))):
         print(move)
 

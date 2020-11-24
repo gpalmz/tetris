@@ -9,7 +9,7 @@ from tetris.model.game import State
 from tetris.model.gameplay import Player, MoveTimer
 from tetris.model.strategy import select_move
 
-MAX_PLAYOUT_TURNS = 1000
+MAX_PLAYOUT_TURNS = 10
 
 
 @dataclass

@@ -177,7 +177,7 @@ class GameDisplay:
             else:
                 self.is_playing = False
 
-        self.player.get_move_obs(state, MoveTimer(1000)).pipe(
+        self.player.get_move_obs(state, MoveTimer(100)).pipe(
             subscribe_on(thread_pool_scheduler),
             observe_on(ui_scheduler),
         ).subscribe(

@@ -45,12 +45,16 @@ class TaskNode(ABC):
         return self.action_to_child.values()
 
     @property
+    def actions(self):
+        return self.state.actions
+
+    @property
     def explored_actions(self):
         return self.action_to_child.keys()
 
     def select(self, get_value):
         # if we don't have a child for every possible action, select this node
-        if not len(self.explored_actions) == len(self.state.actions):
+        if not self.actions or len(self.explored_actions) < len(self.actions):
             return self
         else:
             return max_by(self.children, get=get_value).select(get_value)
