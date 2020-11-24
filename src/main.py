@@ -2,7 +2,6 @@ from rx import operators as ops
 from rx.scheduler import ThreadPoolScheduler
 import rx
 import multiprocessing
-from time import sleep
 from tetris.model.game import create_initial_state, create_initial_board
 from tetris.model.strategy import (
     select_move,
@@ -14,6 +13,7 @@ from tetris.model.strategy import (
     get_row_sum_utility,
     SimplePlayer,
 )
+from tetris.model.mcts import TetrisMctsPlayer
 from tetris.ui.game import GameDisplay, pygame_session
 from tetris.model.hyperparameters import param_search
 
@@ -40,46 +40,22 @@ def demo_game_stdout():
 
 def demo_game_ui():
     with pygame_session():
-        GameDisplay(create_initial_board(), SimplePlayer()).play_game()
+        GameDisplay(create_initial_board(), TetrisMctsPlayer()).play_game()
 
 
-#param_search()
+from common.model.mcts import mcts
+from tetris.model.mcts import TetrisTaskNode, TetrisTaskState
+from tetris.model.gameplay import MoveTimer
+
+
+def run_mcts():
+    state = create_initial_state()
+    timer = MoveTimer(100)
+    for move in mcts(timer, TetrisTaskNode(TetrisTaskState(state))):
+        print(move)
+
 
 # demo_game_stdout()
 demo_game_ui()
-
-exit()
-
-def generate_moves(state, timer):
-    for i in range(10):
-        yield i
-        sleep(1)
-
-
-class Player:
-    def get_move_obs(self, state, timer):
-        return rx.from_iterable(generate_moves(state, timer))
-
-
-def get_thread_pool_scheduler():
-    return ThreadPoolScheduler(multiprocessing.cpu_count())
-
-
-
-scheduler = get_thread_pool_scheduler()
-
-p = Player()
-
-
-moves = []
-
-p.get_move_obs(None, None).pipe(
-    ops.subscribe_on(scheduler)
-).subscribe(
-    on_next=lambda move: moves.append(move),
-    on_completed=lambda: None,  # display move
-)
-
-for _ in range(10):
-    print('hello')
-    sleep(1)
+# run_mcts()
+#param_search()

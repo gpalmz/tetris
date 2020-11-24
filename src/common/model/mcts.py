@@ -1,6 +1,6 @@
 import copy
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod, abstractproperty
 from typing import Optional, Dict
 
@@ -38,11 +38,15 @@ class TaskNode(ABC):
     # The sum of the utilities of playouts going through this node.
     playout_utility_sum: float = 0
     parent: Optional['TaskNode'] = None
-    action_to_child: Dict['Action', 'TaskNode'] = {}  # TODO: add action type?
+    action_to_child: Dict['Action', 'TaskNode'] = field(default_factory=lambda: {})
 
     @property
     def children(self):
         return self.action_to_child.values()
+
+    @property
+    def actions(self):
+        return self.state.actions
 
     @property
     def explored_actions(self):
@@ -50,7 +54,7 @@ class TaskNode(ABC):
 
     def select(self, get_value):
         # if we don't have a child for every possible action, select this node
-        if not len(self.explored_actions) == len(self.state.actions):
+        if not self.actions or len(self.explored_actions) < len(self.actions):
             return self
         else:
             return max_by(self.children, get=get_value).select(get_value)
@@ -100,4 +104,4 @@ def mcts(task, tree, get_node_selection_value=get_selection_value_ucb):
         child.back_propagate(child.simulate())
 
         # at each iteration we yield the best action so far
-        yield max_by(tree.child_by_action.items(), get=lambda e: e[1].playout_count)[0]
+        yield max_by(tree.action_to_child.items(), get=lambda e: e[1].playout_count)[0]

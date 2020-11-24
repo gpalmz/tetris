@@ -9,7 +9,7 @@ from tetris.model.game import State
 from tetris.model.gameplay import Player, MoveTimer
 from tetris.model.strategy import select_move
 
-MAX_PLAYOUT_TURNS = 1000
+MAX_PLAYOUT_TURNS = 10
 
 
 @dataclass
@@ -43,9 +43,9 @@ class TetrisTaskNode(TaskNode):
         explored_actions = set(self.explored_actions)
         # TODO: will there ever be a null action here? If so, this will error
         unexplored_actions = [a for a in self.state.actions if a not in explored_actions]
-        action = list(select_move(unexplored_actions))[-1]
+        action = list(select_move(self.state.state, possible_moves=unexplored_actions))[-1]
         child = TetrisTaskNode(self.state.perform_action(action), parent=self)
-        self.child_by_action[action] = child
+        self.action_to_child[action] = child
         return child
 
     def simulate(self):
@@ -54,7 +54,7 @@ class TetrisTaskNode(TaskNode):
         for i in range(MAX_PLAYOUT_TURNS):
             if state.is_terminal:
                 break
-            state = state.perform_action(list(select_move(state.actions))[-1])
+            state = state.perform_action(list(select_move(state.state))[-1])
 
         # return the number of iterations as the value for the playout
         return i
