@@ -49,11 +49,9 @@ class TetrisTaskNode(TaskNode):
     select_move: Callable[[List["Action"]], "Action"] = select_random_move
 
     def expand(self):
-        explored_actions = set(self.explored_actions)
         # TODO: will there ever be a null action here? If so, this will error
-        unexplored_actions = [a for a in self.state.possible_actions if a not in explored_actions]
         # random to avoid getting stuck with the worst move when playout policy ties
-        action = select_random_move(self.state.state, possible_moves=unexplored_actions)
+        action = select_random_move(self.state.state, possible_moves=self.unexplored_actions)
         child = TetrisTaskNode(self.state.perform_action(action), parent=self)
         self.action_to_child[action] = child
         return child

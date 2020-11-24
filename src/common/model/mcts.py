@@ -40,6 +40,10 @@ class TaskNode(ABC):
     action_to_child: Dict['Action', 'TaskNode'] = field(default_factory=lambda: {})
 
     @property
+    def is_terminal(self):
+        return self.state.is_terminal
+    
+    @property
     def children(self):
         return self.action_to_child.values()
 
@@ -48,12 +52,13 @@ class TaskNode(ABC):
         return self.state.possible_actions
 
     @property
-    def is_terminal(self):
-        return self.state.is_terminal
-
-    @property
     def explored_actions(self):
         return self.action_to_child.keys()
+
+    @property
+    def unexplored_actions(self):
+        explored_actions = set(self.explored_actions)
+        return [a for a in self.possible_actions if a not in explored_actions]
 
     def select(self, get_value):
         # if we don't have a child for every possible action, select this node
