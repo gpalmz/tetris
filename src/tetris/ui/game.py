@@ -43,8 +43,7 @@ COLOR_BY_PIECE_TYPE = {
     PieceType.I: (164, 238, 206),
 }
 
-TURN_DURATION_SEC = 0.5
-END_GAME_DURATION_SEC = 10
+TURN_DURATION_SEC = 10
 
 ui_scheduler = PyGameScheduler(pygame)
 thread_pool_scheduler = ThreadPoolScheduler(multiprocessing.cpu_count())
@@ -72,7 +71,6 @@ class GameDisplay:
     background_color: Any = BACKGROUND_COLOR
     get_color_for_piece_type: Any = lambda piece_type: COLOR_BY_PIECE_TYPE[piece_type]
     turn_duration_sec: Any = TURN_DURATION_SEC
-    end_game_duration_sec: Any = END_GAME_DURATION_SEC
 
     @property
     def row_count(self):
@@ -114,10 +112,12 @@ class GameDisplay:
         self.draw_square(self.square_border_color, x,
                          y, self.square_border_width)
 
-    def draw_current_piece(self, piece, get_block_color):
+    def draw_current_piece(self, piece_type):
+        color = self.get_color_for_piece_type(piece_type)
+        piece = Piece(piece_type, PieceOrientation.UP)
         for placement in piece.block_placements:
             self.draw_block(
-                get_block_color(placement.val),
+                color,
                 (placement.col + (self.col_count - piece.col_count) // 2) *
                 self.square_size,
                 (placement.row + 1) * self.square_size,
@@ -135,11 +135,10 @@ class GameDisplay:
         self.display.blit(self.text_font_primary.render(
             "You lost!", True, self.text_color), (10, 10))
 
-    def display_game(self, board, piece, is_game_over, get_block_color):
-        print('rendering')
+    def update_display(self, board, piece_type, is_game_over, get_block_color):
         self.draw_background()
 
-        self.draw_current_piece(piece, get_block_color)
+        self.draw_current_piece(piece_type)
         self.draw_board(board, get_block_color)
 
         if is_game_over:
@@ -147,66 +146,70 @@ class GameDisplay:
 
         pygame.display.flip()
 
-    # TODO: rename?
-    def subscribe_turn(self, state, color_by_block):
-        moves = []
+    def subscribe_move(self, state, color_by_block, display_buffer):
+        move = None
+        piece = None
+        color_by_block = {**color_by_block}
 
-        def add_move(move):
-            moves.append(move)
-            print('move added:', move)
+        def set_move(new_move):
+            nonlocal move
+            nonlocal piece
 
-        def play_final_move():
-            print('move count:', len(moves))
-            
-            # assume most recent move is best
-            # TODO: figure out if something is wrong here; get rid of safe_get if possible
-            move = safe_get(moves, -1)
+            if not move == new_move:
+                move = new_move
+                print(move)
+                # this is for showing the move currently being considered
+                if move:
+                    # for now, very dumb way of doing opacity since the background is black
+                    # TODO: make it less dumb
+                    piece = state.get_piece_for_move(move)
+                    piece_color = tuple(v / 8 for v in self.get_color_for_piece_type(state.piece_type))
+                    new_color_by_block = {**color_by_block, **{p.val: piece_color for p in piece.block_placements}}
+                    new_state = state.play_piece(piece, move.col)
 
-            piece = state.get_piece_for_move(move) if move else Piece(state.piece_type, PieceOrientation.UP)
+                    display_buffer.append((new_state.board, state.piece_type, not move, lambda b: new_color_by_block[b]))
 
-            # store colors for all the blocks in the piece so we can use them later
-            piece_color = self.get_color_for_piece_type(state.piece_type)
-            color_by_block.update({p.val: piece_color for p in piece.block_placements})
+        def play_move():
+            nonlocal color_by_block
 
-            print('adding display state')
-            self.game_display_states.append((state.board, piece, not move, lambda b: color_by_block[b]))
-
-            # TODO: clean deleted blocks out of color_by_block
             if move:
-                self.subscribe_turn(state.play_piece(piece, move.col), {**color_by_block})
+                piece_color = self.get_color_for_piece_type(piece.piece_type)
+                new_color_by_block = {**color_by_block, **{p.val: piece_color for p in piece.block_placements}}
+                new_state = state.play_piece(piece, move.col)
+                self.subscribe_move(new_state, new_color_by_block, display_buffer)
+                color_by_block = new_color_by_block
             else:
+                new_state = state
                 self.is_playing = False
 
-        self.player.get_move_obs(state, MoveTimer(1000)).pipe(
+            display_buffer.append((new_state.board, new_state.piece_type, not move, lambda b: color_by_block[b]))
+
+        self.player.get_move_obs(state, MoveTimer(self.turn_duration_sec)).pipe(
             subscribe_on(thread_pool_scheduler),
             observe_on(ui_scheduler),
         ).subscribe(
-        # self.player.get_move_obs(state, MoveTimer(1000)).subscribe(
-            on_next=add_move,
-            on_completed=play_final_move,
+        # self.player.get_move_obs(state, MoveTimer(self.turn_duration_sec)).subscribe(
+            on_next=set_move,
+            on_completed=play_move,
         )
 
     def play_game(self):
         pygame.display.set_caption("Tetris")
 
         self.is_playing = True
-        self.game_display_states = []
+        display_buffer = []
 
-        self.subscribe_turn(create_new_state(self.board), {})
+        # TODO: pass around single mutable state object
+        self.subscribe_move(create_new_state(self.board), {}, display_buffer)
 
-        while self.is_playing:
-            # print('main loop')
+        while True:
+            ui_scheduler.run()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return
 
-            while self.game_display_states:
-                self.display_game(*self.game_display_states.pop())
-                time.sleep(self.turn_duration_sec)
+            if display_buffer:
+                self.update_display(*display_buffer.pop(0))
 
-            ui_scheduler.run()
-        
-        if self.game_display_states:
-            self.display_game(*self.game_display_states.pop())
-        
-        time.sleep(self.end_game_duration_sec)
+            # time.sleep(0.1)

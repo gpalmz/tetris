@@ -100,7 +100,12 @@ def get_selection_value_uct(node: TaskNode):
     return u / n + UCT_C * math.sqrt(math.log(parent_n) / n)
 
 
-def mcts(task, tree, get_node_selection_value=get_selection_value_uct):
+def mcts(
+    task, 
+    tree, 
+    get_node_selection_value=get_selection_value_uct,
+    max_playout_depth=None,
+):
     """Run the Monte Carlo Tree Search algorithm to determine the best action 
     at a given state.
 
@@ -117,7 +122,7 @@ def mcts(task, tree, get_node_selection_value=get_selection_value_uct):
             break
         else:
             child = selected_node.expand()
-            child.back_propagate(child.simulate())
+            child.back_propagate(child.simulate(max_playout_depth=max_playout_depth))
 
         # at each iteration we yield the best action so far
         yield max_by(tree.action_to_child.items(), get=lambda e: e[1].playout_count)[0]

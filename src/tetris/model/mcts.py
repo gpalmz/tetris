@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import rx
 
@@ -9,8 +9,6 @@ from common.model.mcts import Task, TaskState, TaskNode, mcts
 from tetris.model.game import State
 from tetris.model.gameplay import Player, MoveTimer
 from tetris.model.strategy import select_move
-
-MAX_PLAYOUT_TURNS = 100
 
 
 @dataclass
@@ -56,11 +54,12 @@ class TetrisTaskNode(TaskNode):
         self.action_to_child[action] = child
         return child
 
-    def simulate(self):
+    def simulate(self, max_playout_depth=None):
         state = self.state
 
-        for i in range(MAX_PLAYOUT_TURNS):
-            if state.is_terminal:
+        i = 0
+        while True:
+            if state.is_terminal or (max_playout_depth is not None and i >= max_playout_depth):
                 break
             state = state.perform_action(self.select_move(state.state))
 
@@ -70,6 +69,7 @@ class TetrisTaskNode(TaskNode):
 @dataclass
 class TetrisMctsPlayer(Player):
     select_move: Callable[[List["Action"]], "Action"] = select_move
+    max_playout_depth: Optional[int] = None
 
     """A Tetris player that uses the Monte Carlo Tree Search algorithm."""
 
@@ -80,5 +80,6 @@ class TetrisMctsPlayer(Player):
             mcts(
                 timer, 
                 TetrisTaskNode(TetrisTaskState(state), select_move=self.select_move),
+                max_playout_depth=self.max_playout_depth
             )
         )

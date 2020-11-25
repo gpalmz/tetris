@@ -41,7 +41,11 @@ def demo_game_stdout():
 
 def demo_game_ui():
     with pygame_session():
-        GameDisplay(create_initial_board(), TetrisMctsPlayer()).play_game()
+        GameDisplay(
+            create_initial_board(), 
+            TetrisMctsPlayer(max_playout_depth=1000), 
+            turn_duration_sec=1000,
+        ).play_game()
 
 
 from common.model.mcts import mcts
