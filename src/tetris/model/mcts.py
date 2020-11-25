@@ -62,6 +62,7 @@ class TetrisTaskNode(TaskNode):
             if state.is_terminal or (max_playout_depth is not None and i >= max_playout_depth):
                 break
             state = state.perform_action(self.select_move(state.state))
+            i += 1
 
         return i
 
