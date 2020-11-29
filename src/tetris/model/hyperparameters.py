@@ -63,7 +63,7 @@ class PlayoutPolicyEstimator(BaseEstimator, RegressorMixin):
         return sum(self.predict(X))
 
 
-def param_search(n_iter=20, concealed_util=RANGE_WEIGHT_CONCEALED_SPACE_UTILITY, empty_util=RANGE_WEIGHT_EMPTY_ROW_UTILITY, row_sum_util=RANGE_WEIGHT_ROW_SUM_UTILITY):
+def parameter_search(n_iter=20, n_samples=50, concealed_util=RANGE_WEIGHT_CONCEALED_SPACE_UTILITY, empty_util=RANGE_WEIGHT_EMPTY_ROW_UTILITY, row_sum_util=RANGE_WEIGHT_ROW_SUM_UTILITY):
     gs = RandomizedSearchCV(
         PlayoutPolicyEstimator(),
         dict(
@@ -75,5 +75,5 @@ def param_search(n_iter=20, concealed_util=RANGE_WEIGHT_CONCEALED_SPACE_UTILITY,
     )
 
     # TODO: what are the magic numbers?
-    gs.fit([1 for i in range(50)], y=[1 for i in range(50)])
+    gs.fit([1 for i in range(n_samples)], y=[1 for i in range(n_samples)])
     return gs.best_params_, gs.best_score_
