@@ -29,7 +29,6 @@ def demo_game(param_search, param_search_iter, param_search_samples, max_playout
                 weight_concealed_space_utility=best_params['weight_concealed_space_utility']
             ))
 
-    ## TODO: set hyperparameters
     with pygame_session():
         GameDisplay(
             create_initial_board(), 
