@@ -44,13 +44,15 @@ def select_random_move(state, possible_moves=None):
 
 @dataclass
 class TetrisTaskNode(TaskNode):
-    select_move: Callable[[List["Action"]], "Action"] = select_random_move
+    select_move: Callable[[State, Optional[List["Action"]]], "Action"] = select_random_move
 
     def expand(self):
         # TODO: will there ever be a null action here? If so, this will error
         # random to avoid getting stuck with the worst move when playout policy ties
         action = select_random_move(self.state.state, possible_moves=self.unexplored_actions)
-        child = TetrisTaskNode(self.state.perform_action(action), parent=self)
+        child = TetrisTaskNode(
+            self.state.perform_action(action), parent=self, select_move=self.select_move,
+        )
         self.action_to_child[action] = child
         return child
 
@@ -69,7 +71,7 @@ class TetrisTaskNode(TaskNode):
 
 @dataclass
 class TetrisMctsPlayer(Player):
-    select_move: Callable[[List["Action"]], "Action"] = select_move
+    select_move: Callable[[State, Optional[List["Action"]]], "Action"] = select_move
     max_playout_depth: Optional[int] = None
 
     """A Tetris player that uses the Monte Carlo Tree Search algorithm."""
