@@ -229,7 +229,7 @@ class State:
     board: Board
     piece_type: PieceType
 
-    @property
+    @cached_property
     def possible_moves(self):
         """Produce a list of all possible moves for the current state."""
         return [

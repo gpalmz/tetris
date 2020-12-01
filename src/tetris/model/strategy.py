@@ -1,3 +1,4 @@
+# TODO: stop trying to scale utilities, simplify to make it faster and do grid search on weights
 import math
 from dataclasses import dataclass
 
@@ -45,17 +46,17 @@ def get_row_sum(state):
     return sum(p.row for p in state.board.block_placements)
 
 
-def get_concealed_space_utility(state, weight=WEIGHT_CONCEALED_SPACE_UTILITY):
+def get_concealed_space_utility(state):
     square_count = state.board.row_count * state.board.col_count
-    return weight * (square_count - get_concealed_space_count(state)) / square_count
+    return (square_count - get_concealed_space_count(state)) / square_count
 
 
-def get_empty_row_utility(state, weight=WEIGHT_EMPTY_ROW_UTILITY):
-    return weight * get_empty_row_count(state) / state.board.row_count
+def get_empty_row_utility(state):
+    return get_empty_row_count(state) / state.board.row_count
 
 
-def get_row_sum_utility(state, weight=WEIGHT_ROW_SUM_UTILITY):
-    return weight * get_row_sum(state)
+def get_row_sum_utility(state):
+    return get_row_sum(state)
 
 
 def get_complex_utility(
@@ -64,7 +65,11 @@ def get_complex_utility(
     weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
-    return get_concealed_space_utility(state, weight_concealed_space_utility) + get_empty_row_utility(state, weight_empty_row_utility) + get_row_sum_utility(state, weight_row_sum_utility)
+    return (
+        get_concealed_space_utility(state) * weight_concealed_space_utility
+        + get_empty_row_utility(state) * weight_empty_row_utility
+        + get_row_sum_utility(state) * weight_row_sum_utility
+    )
 
  
 def select_move(

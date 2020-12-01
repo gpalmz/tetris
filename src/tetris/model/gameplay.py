@@ -8,8 +8,8 @@ class Player(ABC):
         pass
 
 
-# TODO: store a real countdown timer, set it running on separate thread when 
-# the task is started. player loses if it doesn't provide a move in time.
+# surprise!!! this is a fake timer
+# fight me
 @dataclass
 class MoveTimer:
     time: int
@@ -20,6 +20,3 @@ class MoveTimer:
         if t > 0:
             self.time -= 1
         return t
-
-    def start(self):
-        pass
