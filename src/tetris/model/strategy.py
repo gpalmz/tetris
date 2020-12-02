@@ -7,8 +7,8 @@ import rx
 from common.util.iter import max_by
 from tetris.model.gameplay import Player
 
-WEIGHT_CONCEALED_SPACE_UTILITY = 314
-WEIGHT_EMPTY_ROW_UTILITY = 19.53
+WEIGHT_CONCEALED_SPACE_UTILITY = -62600
+WEIGHT_EMPTY_ROW_UTILITY = 391
 WEIGHT_ROW_SUM_UTILITY = 0.0056500000000000005
 
 
@@ -46,19 +46,6 @@ def get_row_sum(state):
     return sum(p.row for p in state.board.block_placements)
 
 
-def get_concealed_space_utility(state):
-    square_count = state.board.row_count * state.board.col_count
-    return (square_count - get_concealed_space_count(state)) / square_count
-
-
-def get_empty_row_utility(state):
-    return get_empty_row_count(state) / state.board.row_count
-
-
-def get_row_sum_utility(state):
-    return get_row_sum(state)
-
-
 def get_complex_utility(
     state,
     weight_concealed_space_utility=WEIGHT_CONCEALED_SPACE_UTILITY,
@@ -66,9 +53,9 @@ def get_complex_utility(
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
     return (
-        get_concealed_space_utility(state) * weight_concealed_space_utility
-        + get_empty_row_utility(state) * weight_empty_row_utility
-        + get_row_sum_utility(state) * weight_row_sum_utility
+        get_concealed_space_count(state) * weight_concealed_space_utility
+        + get_empty_row_count(state) * weight_empty_row_utility
+        + get_row_sum(state) * weight_row_sum_utility
     )
 
  

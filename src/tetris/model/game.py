@@ -1,7 +1,7 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
 from random import randrange
-from functools import cached_property
+from functools import cached_property, cache
 
 import numpy as np
 
@@ -112,11 +112,11 @@ class Piece:
     def grid(self):
         return np.rot90(get_grid_for_piece_type(self.piece_type), k=self.orientation.value)
 
-    @property
+    @cached_property
     def row_count(self):
         return self.grid.shape[0]
 
-    @property
+    @cached_property
     def col_count(self):
         return self.grid.shape[1]
 
@@ -138,11 +138,11 @@ class Piece:
 class Board:
     grid: np.array
 
-    @property
+    @cached_property
     def row_count(self):
         return self.grid.shape[0]
 
-    @property
+    @cached_property
     def col_count(self):
         return self.grid.shape[1]
 
@@ -153,6 +153,11 @@ class Board:
     def __str__(self):
         return get_block_grid_str(self.grid)
 
+    def __hash__(self):
+        return hash(self.grid.data.tobytes())
+
+    # TODO: figure out why caching these fails
+    # @cache
     def is_coord_empty(self, row, col):
         """Determine whether a block can be placed at a given coordinate.
 
@@ -169,6 +174,7 @@ class Board:
 
         return Board(new_grid)
 
+    # @cache
     def is_row_full(self, row):
         return not any(self.is_coord_empty(row, col) for col in range(self.col_count))
 
@@ -185,7 +191,9 @@ class Board:
 
 
 def create_initial_board():
-    return Board(np.zeros((20, 10), dtype=np.object))
+    grid = np.zeros((20, 10), dtype=np.object)
+    grid.flags.writeable = False
+    return Board(grid)
 
 
 @dataclass(frozen=True)

@@ -8,8 +8,8 @@ from tetris.model.game import create_initial_state
 from tetris.model.strategy import select_move
 
 
-RANGE_WEIGHT_CONCEALED_SPACE_UTILITY = np.arange(0, 500, 1)
-RANGE_WEIGHT_EMPTY_ROW_UTILITY = np.arange(0, 20, 0.01)
+RANGE_WEIGHT_CONCEALED_SPACE_UTILITY = np.arange(-100000, 0, 100)
+RANGE_WEIGHT_EMPTY_ROW_UTILITY = np.arange(0, 500, 1)
 RANGE_WEIGHT_ROW_SUM_UTILITY = np.arange(0, 0.01, 0.00001)
 
 
