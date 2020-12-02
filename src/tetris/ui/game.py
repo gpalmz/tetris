@@ -11,7 +11,6 @@ from rx.operators import subscribe_on, observe_on
 from rx.scheduler import ThreadPoolScheduler
 from rx.scheduler.mainloop import PyGameScheduler
 
-from common.util.iter import safe_get
 from tetris.model.game import (
     Block,
     PieceType,
@@ -154,10 +153,9 @@ class GameDisplay:
         def set_move(new_move):
             nonlocal move
             nonlocal piece
-
+            
             if not move == new_move:
                 move = new_move
-                print(move)
                 # this is for showing the move currently being considered
                 if move:
                     # for now, very dumb way of doing opacity since the background is black
@@ -188,7 +186,6 @@ class GameDisplay:
             subscribe_on(thread_pool_scheduler),
             observe_on(ui_scheduler),
         ).subscribe(
-        # self.player.get_move_obs(state, MoveTimer(self.turn_duration_sec)).subscribe(
             on_next=set_move,
             on_completed=play_move,
         )

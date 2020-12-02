@@ -1,10 +1,8 @@
-# TODO: stop trying to scale utilities, simplify to make it faster and do grid search on weights
 import math
 from dataclasses import dataclass
 
 import rx
 
-from common.util.iter import max_by
 from tetris.model.gameplay import Player
 
 WEIGHT_CONCEALED_SPACE_UTILITY = -62600
@@ -71,7 +69,7 @@ def select_move(
         possible_moves = state.possible_moves
         
     return (
-        max_by(
+        max(
             [
                 (
                     move,
@@ -84,7 +82,7 @@ def select_move(
                 ) 
                 for move in possible_moves
             ], 
-            lambda item: item[1],
+            key=lambda item: item[1],
         )[0]
         if possible_moves
         else None

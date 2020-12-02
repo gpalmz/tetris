@@ -4,9 +4,6 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod, abstractproperty
 from typing import Optional, Dict
 
-from common.util.iter import max_by
-
-
 @dataclass
 class Task(ABC):
     @abstractproperty
@@ -65,7 +62,7 @@ class TaskNode(ABC):
         if not self.possible_actions or len(self.explored_actions) < len(self.possible_actions):
             return self
         else:
-            return max_by(self.children, get=get_value).select(get_value)
+            return max(self.children, key=get_value).select(get_value)
 
     def back_propagate(self, result):
         self.playout_count += 1
@@ -113,6 +110,8 @@ def mcts(
     of a node in the selection phase of the algorithm."""
 
     while task.time_remaining:
+        print("iter")
+        
         selected_node = tree.select(get_node_selection_value)
         if selected_node.is_terminal:
             # impossible to expand a terminal node; no possible actions
@@ -125,4 +124,4 @@ def mcts(
             child.back_propagate(child.simulate(max_playout_depth=max_playout_depth))
 
         # at each iteration we yield the best action so far
-        yield max_by(tree.action_to_child.items(), get=lambda e: e[1].playout_count)[0]
+        yield max(tree.action_to_child.items(), key=lambda e: e[1].playout_count)[0]

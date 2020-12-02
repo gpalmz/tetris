@@ -2,6 +2,7 @@ from enum import Enum, unique, auto
 from dataclasses import dataclass
 from random import randrange
 from functools import cached_property, cache
+from collections import namedtuple
 
 import numpy as np
 
@@ -9,7 +10,7 @@ import common.util.np as np_util
 
 
 class Block:
-    pass
+    __slots__ = []
 
 
 def make_block():
@@ -18,6 +19,10 @@ def make_block():
 
 def make_space():
     return 0
+
+
+def is_block(val):
+    return isinstance(val, Block)
 
 
 @unique
@@ -84,15 +89,7 @@ class PieceOrientation(Enum):
         return PieceOrientation(self.value + rotation_count % 4)
 
 
-@dataclass(frozen=True)
-class GridPlacement:
-    row: int
-    col: int
-    val: "any"  # TODO: type
-
-
-def is_block(val):
-    return isinstance(val, Block)
+GridPlacement = namedtuple("GridPlacement", "row col val")
 
 
 def get_block_placements_for_grid(grid):
@@ -134,7 +131,9 @@ class Piece:
         )
 
 
-@dataclass(frozen=True)
+# NOTE: to see the absolute worst bug in the world, remove "eq=False" and use
+# the functools.cache annotation on any method
+@dataclass(frozen=True, eq=False)
 class Board:
     grid: np.array
 
@@ -153,17 +152,15 @@ class Board:
     def __str__(self):
         return get_block_grid_str(self.grid)
 
-    def __hash__(self):
-        return hash(self.grid.data.tobytes())
-
-    # TODO: figure out why caching these fails
-    # @cache
     def is_coord_empty(self, row, col):
         """Determine whether a block can be placed at a given coordinate.
 
         If the coordinate is off the board, a block cannot be placed."""
         val = np_util.arr_get_safe(self.grid, (row, col))
         return not (is_block(val) or val is None)
+
+    def is_row_full(self, row):
+        return not any(self.is_coord_empty(row, col) for col in range(self.col_count))
 
     def place(self, placements):
         """Produce a new board similar to this one but with the specified coordinates filled."""
@@ -173,10 +170,6 @@ class Board:
             new_grid[placement.row, placement.col] = placement.val
 
         return Board(new_grid)
-
-    # @cache
-    def is_row_full(self, row):
-        return not any(self.is_coord_empty(row, col) for col in range(self.col_count))
 
     def clear_rows(self, rows):
         return Board(
@@ -196,10 +189,7 @@ def create_initial_board():
     return Board(grid)
 
 
-@dataclass(frozen=True)
-class Move:
-    col: int
-    orientation: PieceOrientation
+Move = namedtuple("Move", "col orientation")
 
 
 def can_place_at_coord(board, piece, row, col):
@@ -251,14 +241,14 @@ class State:
         return create_new_state(
             clear_full_rows(
                 self.board.place(
-                    [
+                    tuple(
                         GridPlacement(
                             p.row + get_lowest_row(self.board, piece, col),
                             p.col + col,
                             p.val,
                         )
                         for p in piece.block_placements
-                    ]
+                    )
                 )
             )
         )
