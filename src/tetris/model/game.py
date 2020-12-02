@@ -80,7 +80,7 @@ class PieceOrientation(Enum):
     LEFT = 3
     RIGHT = 1
 
-    def rotated_90_cw(self, rotation_count=1):
+    def rotated_90_ccw(self, rotation_count=1):
         return PieceOrientation(self.value + rotation_count % 4)
 
 
@@ -110,10 +110,7 @@ class Piece:
 
     @cached_property
     def grid(self):
-        return np_util.arr_rotated_90_cw(
-            get_grid_for_piece_type(self.piece_type),
-            rotation_count=self.orientation.value,
-        )
+        return np.rot90(get_grid_for_piece_type(self.piece_type), k=self.orientation.value)
 
     @property
     def row_count(self):
@@ -130,10 +127,10 @@ class Piece:
     def __str__(self):
         return get_block_grid_str(self.grid)
 
-    def rotated_90_cw(self, rotation_count=1):
+    def rotated_90_ccw(self, rotation_count=1):
         return Piece(
             self.piece_type,
-            self.orientation.rotated_90_cw(rotation_count=rotation_count),
+            self.orientation.rotated_90_ccw(rotation_count=rotation_count),
         )
 
 
