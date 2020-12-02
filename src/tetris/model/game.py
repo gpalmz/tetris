@@ -77,8 +77,8 @@ def get_grid_for_piece_type(piece_type):
 class PieceOrientation(Enum):
     UP = 0
     DOWN = 2
-    LEFT = 3
-    RIGHT = 1
+    LEFT = 1
+    RIGHT = 3
 
     def rotated_90_ccw(self, rotation_count=1):
         return PieceOrientation(self.value + rotation_count % 4)
