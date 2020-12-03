@@ -70,6 +70,7 @@ class GameDisplay:
     background_color: Any = BACKGROUND_COLOR
     get_color_for_piece_type: Any = lambda piece_type: COLOR_BY_PIECE_TYPE[piece_type]
     turn_duration_sec: Any = TURN_DURATION_SEC
+    score: Any = 0
 
     @property
     def row_count(self):
@@ -134,12 +135,16 @@ class GameDisplay:
         self.display.blit(self.text_font_primary.render(
             "You lost!", True, self.text_color), (10, 10))
 
+    def draw_score(self):
+        self.display.blit(self.text_font_primary.render(
+            f"Score: {self.score}", True, self.text_color), (175, 10))
+
     def update_display(self, board, piece_type, is_game_over, get_block_color):
         self.draw_background()
 
         self.draw_current_piece(piece_type)
         self.draw_board(board, get_block_color)
-
+        self.draw_score()
         if is_game_over:
             self.draw_game_over()
 
@@ -181,6 +186,7 @@ class GameDisplay:
                 self.is_playing = False
 
             display_buffer.append((new_state.board, new_state.piece_type, not move, lambda b: color_by_block[b]))
+            self.score += 1
 
         self.player.get_move_obs(state, MoveTimer(self.turn_duration_sec)).pipe(
             subscribe_on(thread_pool_scheduler),
