@@ -91,7 +91,7 @@ def tune_move_selector(
     empty_util=RANGE_WEIGHT_EMPTY_ROW_UTILITY, 
     row_sum_util=RANGE_WEIGHT_ROW_SUM_UTILITY,
 ):
-    """Produce a tuned game state utility estimator function."""
+    """Produce a tuned move selection function."""
     return create_select_action_by_utility(
         create_get_utility_with_params(
             **RandomizedSearchCV(
