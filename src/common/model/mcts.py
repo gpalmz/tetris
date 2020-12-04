@@ -1,29 +1,20 @@
-import copy
 import math
 from dataclasses import dataclass, field
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from typing import Optional, Dict
 
-@dataclass
-class Task(ABC):
-    @abstractproperty
-    def time_remaining(self):
-        pass
+from common.model.task import Task, TaskState
+
+# TODO: fuck around with this
+UCT_C = math.sqrt(2)
 
 
-@dataclass
-class TaskState(ABC):
-    @abstractproperty
-    def is_terminal(self):
-        pass
-
-    @abstractproperty
-    def possible_actions(self):
-        pass
-
-    @abstractmethod
-    def perform_action(self, action):
-        pass
+def get_selection_value_uct(node: "TaskNode"):
+    n = node.playout_count
+    u = node.playout_utility_sum
+    # TODO: is this the correct handling when no parent?
+    parent_n = node.parent.playout_count if node.parent else 0
+    return u / n + UCT_C * math.sqrt(math.log(parent_n) / n)
 
 
 @dataclass
@@ -33,13 +24,9 @@ class TaskNode(ABC):
     playout_count: int = 0
     # The sum of the utilities of playouts going through this node.
     playout_utility_sum: float = 0
-    parent: Optional['TaskNode'] = None
-    action_to_child: Dict['Action', 'TaskNode'] = field(default_factory=lambda: {})
+    parent: Optional["TaskNode"] = None
+    action_to_child: Dict["Action", "TaskNode"] = field(default_factory=lambda: {})
 
-    @property
-    def is_terminal(self):
-        return self.state.is_terminal
-    
     @property
     def children(self):
         return self.action_to_child.values()
@@ -84,44 +71,29 @@ class TaskNode(ABC):
         Do not store the resulting playout tree."""
         pass
 
+    def mcts(
+        self,
+        task: Task, 
+        get_node_selection_value=get_selection_value_uct,
+        max_playout_depth=None,
+    ):
+        """Run the Monte Carlo Tree Search algorithm to determine the best action 
+        at a given state.
 
-# TODO: fuck around with this
-UCT_C = math.sqrt(2)
+        :param get_node_selection_value: A function used to determine the value 
+        of a node in the selection phase of the algorithm."""
 
+        while task.time_remaining:
+            selected_node = self.select(get_node_selection_value)
+            if not selected_node.possible_actions:
+                # impossible to expand a terminal node; no possible actions
+                # TODO: think more about what to do in this case and when it 
+                # should come up. it should definitely come up if self is a 
+                # terminal node.
+                break
+            else:
+                child = selected_node.expand()
+                child.back_propagate(child.simulate(max_playout_depth=max_playout_depth))
 
-def get_selection_value_uct(node: TaskNode):
-    n = node.playout_count
-    u = node.playout_utility_sum
-    # TODO: is this the correct handling when no parent?
-    parent_n = node.parent.playout_count if node.parent else 0
-    return u / n + UCT_C * math.sqrt(math.log(parent_n) / n)
-
-
-def mcts(
-    task, 
-    tree, 
-    get_node_selection_value=get_selection_value_uct,
-    max_playout_depth=None,
-):
-    """Run the Monte Carlo Tree Search algorithm to determine the best action 
-    at a given state.
-
-    :param get_node_selection_value: A function used to determine the value 
-    of a node in the selection phase of the algorithm."""
-
-    while task.time_remaining:
-        print("iter")
-        
-        selected_node = tree.select(get_node_selection_value)
-        if selected_node.is_terminal:
-            # impossible to expand a terminal node; no possible actions
-            # TODO: think more about what to do in this case and when it 
-            # should come up. it should definitely come up with the tree 
-            # passed in is a terminal node.
-            break
-        else:
-            child = selected_node.expand()
-            child.back_propagate(child.simulate(max_playout_depth=max_playout_depth))
-
-        # at each iteration we yield the best action so far
-        yield max(tree.action_to_child.items(), key=lambda e: e[1].playout_count)[0]
+            # at each iteration we yield the best action so far
+            yield max(self.action_to_child.items(), key=lambda e: e[1].playout_count)[0]

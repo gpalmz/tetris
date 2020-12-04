@@ -1,9 +1,9 @@
 import click
 
 from tetris.model.game import create_initial_board, create_initial_state
-from tetris.model.mcts import TetrisMctsPlayer, select_random_move
-from tetris.model.hyperparameters import parameter_search
-from tetris.model.strategy import SimplePlayer, select_move
+from tetris.model.mcts import TetrisMctsPlayer
+from tetris.model.hyperparameters import tune_move_selector
+from tetris.model.strategy import select_move_random, select_move_smart, SimplePlayer
 from tetris.model.gameplay import MoveTimer
 from tetris.ui.game import GameDisplay, pygame_session
 
@@ -61,20 +61,14 @@ def demo_game(interface, player_type, max_turn_duration, mcts_playout_policy, mc
             player = SimplePlayer()
         else:
             if mcts_playout_policy == "random":
-                player_select_move = select_random_move
+                player_select_move = select_move_random
             else:
                 if tune_hyperparam:
-                    best_params, _ = parameter_search(
+                    player_select_move = tune_move_selector(
                         tune_hyperparam_iter, tune_hyperparam_samples,
                     )
-                    player_select_move = lambda state: select_move(
-                        state,
-                        weight_row_sum_utility=best_params["weight_row_sum_utility"],
-                        weight_empty_row_utility=best_params["weight_empty_row_utility"],
-                        weight_concealed_space_utility=best_params["weight_concealed_space_utility"],
-                    )
                 else:
-                    player_select_move = select_move
+                    player_select_move = select_move_smart
             player = TetrisMctsPlayer(
                 select_move=player_select_move, max_playout_depth=mcts_playout_depth,
             )

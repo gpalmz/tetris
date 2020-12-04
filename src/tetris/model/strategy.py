@@ -1,9 +1,12 @@
 import math
+import random
 from dataclasses import dataclass
 
 import rx
 
 from tetris.model.gameplay import Player
+from common.model.task import create_select_action_by_utility
+from tetris.model.task import TetrisTaskState
 
 WEIGHT_CONCEALED_SPACE_UTILITY = -62600
 WEIGHT_EMPTY_ROW_UTILITY = 391
@@ -51,42 +54,19 @@ def get_complex_utility(
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
     return (
-        get_concealed_space_count(state) * weight_concealed_space_utility
-        + get_empty_row_count(state) * weight_empty_row_utility
-        + get_row_sum(state) * weight_row_sum_utility
+        get_concealed_space_count(state.state) * weight_concealed_space_utility
+        + get_empty_row_count(state.state) * weight_empty_row_utility
+        + get_row_sum(state.state) * weight_row_sum_utility
     )
 
- 
-def select_move(
-    state,
-    weight_concealed_space_utility=WEIGHT_CONCEALED_SPACE_UTILITY,
-    weight_empty_row_utility=WEIGHT_EMPTY_ROW_UTILITY,
-    weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
-    possible_moves=None,
-):
 
-    if possible_moves is None:
-        possible_moves = state.possible_moves
-        
-    return (
-        max(
-            [
-                (
-                    move,
-                    get_complex_utility(
-                        state.play_move(move), 
-                        weight_concealed_space_utility, 
-                        weight_empty_row_utility, 
-                        weight_row_sum_utility,
-                    )
-                ) 
-                for move in possible_moves
-            ], 
-            key=lambda item: item[1],
-        )[0]
-        if possible_moves
-        else None
-    )
+select_move_smart = create_select_action_by_utility(get_complex_utility)
+
+
+def select_move_random(state, possible_moves):
+    return random.choice(possible_moves)
+# a slower implementation of select_move_random that actually applies all possible moves
+# select_move_random = create_select_action_by_utility(lambda state: 0)
 
 
 @dataclass
@@ -94,4 +74,4 @@ class SimplePlayer(Player):
     """A Tetris player that uses hardcoded logic."""
 
     def get_move_obs(self, state, timer):
-        return rx.of(select_move(state))
+        return rx.of(select_move_smart(TetrisTaskState(state), state.possible_moves))
