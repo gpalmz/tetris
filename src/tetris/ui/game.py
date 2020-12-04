@@ -18,7 +18,7 @@ from tetris.model.game import (
     Piece,
     create_new_state,
 )
-from tetris.model.gameplay import MoveTimer
+from tetris.model.task import TetrisMoveTask
 
 RGB_WHITE = (255, 255, 255)
 RGB_BLACK = (0, 0, 0)
@@ -182,7 +182,7 @@ class GameDisplay:
 
             display_buffer.append((new_state.board, new_state.piece_type, not move, lambda b: color_by_block[b]))
 
-        self.player.get_move_obs(state, MoveTimer(self.turn_duration_sec)).pipe(
+        self.player.get_move_obs(state, TetrisMoveTask(self.turn_duration_sec)).pipe(
             subscribe_on(thread_pool_scheduler),
             observe_on(ui_scheduler),
         ).subscribe(

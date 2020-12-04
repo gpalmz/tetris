@@ -1,10 +1,10 @@
 import click
 
 from tetris.model.game import create_initial_board, create_initial_state
-from tetris.model.mcts import TetrisMctsPlayer
 from tetris.model.hyperparameters import tune_move_selector
-from tetris.model.strategy import select_move_random, select_move_smart, SimplePlayer
-from tetris.model.gameplay import MoveTimer
+from tetris.model.strategy import select_move_random, select_move_smart
+from tetris.model.gameplay import SimplePlayer, MctsPlayer
+from tetris.model.task import TetrisMoveTask
 from tetris.ui.game import GameDisplay, pygame_session
 
 
@@ -34,7 +34,7 @@ def run_game_stdout(player, max_turn_duration):
                 state = state.play_move(move)
                 subscribe_to_move(state)
 
-        player.get_move_obs(state, MoveTimer(max_turn_duration)).subscribe(
+        player.get_move_obs(state, TetrisMoveTask(max_turn_duration)).subscribe(
             on_next=set_move, on_completed=play_move,
         )
 
@@ -69,7 +69,7 @@ def demo_game(interface, player_type, max_turn_duration, mcts_playout_policy, mc
                     )
                 else:
                     player_select_move = select_move_smart
-            player = TetrisMctsPlayer(
+            player = MctsPlayer(
                 select_move=player_select_move, max_playout_depth=mcts_playout_depth,
             )
 
