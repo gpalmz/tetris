@@ -51,12 +51,12 @@ class TaskNode(ABC):
         else:
             return max(self.children, key=get_value).select(get_value)
 
-    def back_propagate(self, result):
+    def back_propagate(self, playout_utility):
         self.playout_count += 1
-        self.playout_utility_sum += result
+        self.playout_utility_sum += playout_utility
 
         if self.parent:
-            self.parent.back_propagate(result)
+            self.parent.back_propagate(playout_utility)
 
     @abstractmethod
     def expand(self):
@@ -87,13 +87,9 @@ class TaskNode(ABC):
             selected_node = self.select(get_node_selection_value)
             if not selected_node.possible_actions:
                 # impossible to expand a terminal node; no possible actions
-                # TODO: think more about what to do in this case and when it 
-                # should come up. it should definitely come up if self is a 
-                # terminal node.
                 break
             else:
                 child = selected_node.expand()
                 child.back_propagate(child.simulate(max_playout_depth=max_playout_depth))
-
-            # at each iteration we yield the best action so far
-            yield max(self.action_to_child.items(), key=lambda e: e[1].playout_count)[0]
+                # at each iteration we yield the best action so far
+                yield max(self.action_to_child.items(), key=lambda e: e[1].playout_count)[0]

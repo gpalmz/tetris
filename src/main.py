@@ -1,8 +1,7 @@
 import click
 
 from tetris.model.game import create_initial_board, create_initial_state
-from tetris.model.hyperparameters import tune_move_selector
-from tetris.model.strategy import select_move_random, select_move_smart
+from tetris.model.strategy import select_move_random, select_move_smart, get_complex_utility
 from tetris.model.gameplay import SimplePlayer, MctsPlayer
 from tetris.model.task import TetrisMoveTask
 from tetris.ui.game import GameDisplay, pygame_session
@@ -16,6 +15,7 @@ def run_game_gui(player, max_turn_duration):
     ).play_game()
 
 
+# mostly for debugging
 def run_game_stdout(player, max_turn_duration):
 
     def subscribe_to_move(state):
@@ -24,7 +24,6 @@ def run_game_stdout(player, max_turn_duration):
         def set_move(new_move):
             nonlocal move
             if new_move and new_move != move:
-                # TODO: make this fancier
                 print(state.play_move(new_move).board)
             move = new_move
 
@@ -41,16 +40,13 @@ def run_game_stdout(player, max_turn_duration):
     subscribe_to_move(create_initial_state())
 
 
-@click.command()
+@click.command("run")
 @click.option("--interface", type=click.Choice(["gui", "stdout"]), default="gui", help="The type of user interface to run tetris in. Only the GUI supports interactive play.")
 @click.option("--player-type", type=click.Choice(["interactive", "simple", "mcts"]), default="interactive", help="The type of player to use; interactive lets you play.")
 @click.option("--max-turn-duration", default=1000, help="Maximum duration of each turn in seconds.")
 @click.option("--mcts-playout-policy", type=click.Choice(["random", "smart"]), default="smart", help="The manner of selecting moves during MCTS playout.")
 @click.option("--mcts-playout-depth", default=1000, help="Max playout depth.")
-@click.option("--tune-hyperparam", is_flag=True, help="Whether to run hyperparameter optimization.")
-@click.option("--tune-hyperparam-iter", default=20, help="Number of iterations of random hyperparameter search; larger values will return more accurate yet slower results.")
-@click.option("--tune-hyperparam-samples", default=50, help="Number of samples tried per each hyperparameter set; larger values will return more accurate yet slower results. Must be greater than 5.")
-def demo_game(interface, player_type, max_turn_duration, mcts_playout_policy, mcts_playout_depth, tune_hyperparam, tune_hyperparam_iter, tune_hyperparam_samples):
+def run_game(interface, player_type, max_turn_duration, mcts_playout_policy, mcts_playout_depth):
     with pygame_session():
         if player_type == "interactive":
             if interface != "gui":
@@ -63,14 +59,11 @@ def demo_game(interface, player_type, max_turn_duration, mcts_playout_policy, mc
             if mcts_playout_policy == "random":
                 player_select_move = select_move_random
             else:
-                if tune_hyperparam:
-                    player_select_move = tune_move_selector(
-                        tune_hyperparam_iter, tune_hyperparam_samples,
-                    )
-                else:
-                    player_select_move = select_move_smart
+                player_select_move = select_move_smart
             player = MctsPlayer(
-                select_move=player_select_move, max_playout_depth=mcts_playout_depth,
+                select_move=player_select_move, 
+                get_utility=get_complex_utility,
+                max_playout_depth=mcts_playout_depth,
             )
 
         if interface == "gui":
@@ -80,4 +73,4 @@ def demo_game(interface, player_type, max_turn_duration, mcts_playout_policy, mc
 
 
 if __name__ == "__main__":
-    demo_game()
+    run_game()

@@ -1,3 +1,5 @@
+import functools
+
 import numpy as np
 from sklearn.metrics import make_scorer
 from sklearn.model_selection import RandomizedSearchCV
@@ -9,25 +11,11 @@ from tetris.model.game import create_initial_state
 from tetris.model.strategy import get_complex_utility
 from tetris.model.task import TetrisTaskState
 
-
-RANGE_WEIGHT_CONCEALED_SPACE_UTILITY = np.arange(-100000, 0, 100)
-RANGE_WEIGHT_EMPTY_ROW_UTILITY = np.arange(0, 500, 1)
-RANGE_WEIGHT_ROW_SUM_UTILITY = np.arange(0, 0.01, 0.00001)
-
-
-def create_get_utility_with_params(
-    weight_concealed_space_utility,
-    weight_empty_row_utility,
-    weight_row_sum_utility,
-):
-    """Create a state utility estimator function that closes over the given 
-    parameters."""
-    return lambda state: get_complex_utility(
-        state,
-        weight_concealed_space_utility=weight_concealed_space_utility,
-        weight_empty_row_utility=weight_empty_row_utility,
-        weight_row_sum_utility=weight_row_sum_utility,
-    )
+PARAM_DISTRIBUTIONS = dict(
+    weight_concealed_space_utility=np.arange(0, 500, 1),
+    weight_empty_row_utility=np.arange(0, 50, 0.1),
+    weight_row_sum_utility=np.arange(0, 1, 0.001),
+)
 
 
 def get_game_turn_count(get_utility):
@@ -68,10 +56,11 @@ class GameLengthEstimator(BaseEstimator, RegressorMixin):
 
     def fit(self, X, y=None):
         self.score_ = get_game_turn_count(
-            create_get_utility_with_params(
-                self.weight_concealed_space_utility, 
-                self.weight_empty_row_utility, 
-                self.weight_row_sum_utility,
+            functools.partial(
+                get_complex_utility,
+                weight_concealed_space_utility=self.weight_concealed_space_utility, 
+                weight_empty_row_utility=self.weight_empty_row_utility, 
+                weight_row_sum_utility=self.weight_row_sum_utility,
             )
         )
         return self
@@ -84,27 +73,10 @@ class GameLengthEstimator(BaseEstimator, RegressorMixin):
 
 
 # TODO: what do the magic numbers mean and how were they selected?
-def tune_move_selector(
-    n_iter=20, 
-    n_samples=50, 
-    concealed_util=RANGE_WEIGHT_CONCEALED_SPACE_UTILITY, 
-    empty_util=RANGE_WEIGHT_EMPTY_ROW_UTILITY, 
-    row_sum_util=RANGE_WEIGHT_ROW_SUM_UTILITY,
-):
-    """Produce a tuned move selection function."""
-    return create_select_action_by_utility(
-        create_get_utility_with_params(
-            **RandomizedSearchCV(
-                GameLengthEstimator(),
-                dict(
-                    weight_concealed_space_utility=concealed_util,
-                    weight_empty_row_utility=empty_util,
-                    weight_row_sum_utility=row_sum_util,
-                ),
-                n_iter=n_iter,
-            ).fit(
-                [1 for i in range(n_samples)], 
-                y=[1 for i in range(n_samples)],
-            ).best_params_
-        )
-    )
+def tune_move_selector_params(n_iter=20, n_samples=50, param_distributions=PARAM_DISTRIBUTIONS):
+    return RandomizedSearchCV(
+        GameLengthEstimator(), param_distributions, n_iter=n_iter,
+    ).fit(
+        # TODO: remove duplicate
+        tuple(1 for i in range(n_samples)), y=tuple(1 for i in range(n_samples)),
+    ).best_params_

@@ -1,11 +1,17 @@
+import json
 import math
 import random
 
 from common.model.task import create_select_action_by_utility
 
-WEIGHT_CONCEALED_SPACE_UTILITY = -62600
-WEIGHT_EMPTY_ROW_UTILITY = 391
-WEIGHT_ROW_SUM_UTILITY = 0.0056500000000000005
+# WEIGHT_CONCEALED_SPACE_UTILITY = 213
+# WEIGHT_EMPTY_ROW_UTILITY = 12
+# WEIGHT_ROW_SUM_UTILITY = 0.4
+with open("../config/params.json") as f:
+    PARAM_WEIGHTS = json.load(f)
+WEIGHT_CONCEALED_SPACE_UTILITY = PARAM_WEIGHTS["weight_concealed_space_utility"]
+WEIGHT_EMPTY_ROW_UTILITY = PARAM_WEIGHTS["weight_empty_row_utility"]
+WEIGHT_ROW_SUM_UTILITY = PARAM_WEIGHTS["weight_row_sum_utility"]
 
 
 def get_concealed_space_count_for_coord(state, row, col):
@@ -31,15 +37,36 @@ def get_concealed_space_count(state):
     )
 
 
+def get_unconcealed_space_proportion(state):
+    """Produce the proportion of squares that are not concealed spaces."""
+    return 1 - get_concealed_space_count(state) / (state.board.row_count * state.board.col_count)
+
+
 def get_empty_row_count(state):
     """Produce the number of empty rows."""
     placements = state.board.block_placements
     return min(p.row for p in placements) if placements else state.board.row_count
 
 
+def get_empty_row_proportion(state):
+    """Produce the proportion of rows that are empty."""
+    return get_empty_row_count(state) / state.board.row_count
+
+
 def get_row_sum(state):
     """Produce the sum of the row indices of all blocks."""
     return sum(p.row for p in state.board.block_placements)
+
+
+def get_max_row_sum(state):
+    r = state.board.row_count
+    c = state.board.col_count
+    return r * (r - 1) * c // 2
+
+
+def get_row_sum_proportion(state):
+    """Produce the proportion of total row coordinates to the maximum possible."""
+    return get_row_sum(state) / get_max_row_sum(state)
 
 
 def get_complex_utility(
@@ -49,10 +76,10 @@ def get_complex_utility(
     weight_row_sum_utility=WEIGHT_ROW_SUM_UTILITY,
 ):
     return (
-        get_concealed_space_count(state.state) * weight_concealed_space_utility
-        + get_empty_row_count(state.state) * weight_empty_row_utility
-        + get_row_sum(state.state) * weight_row_sum_utility
-    )
+        get_unconcealed_space_proportion(state.state) * weight_concealed_space_utility
+        + get_empty_row_proportion(state.state) * weight_empty_row_utility
+        + get_row_sum_proportion(state.state) * weight_row_sum_utility
+    ) / 5  # TODO: kind of a magic number to weight the utility in mcts
 
 
 select_move_smart = create_select_action_by_utility(get_complex_utility)
