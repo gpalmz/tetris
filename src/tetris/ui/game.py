@@ -215,4 +215,4 @@ class GameDisplay:
             if display_buffer:
                 self.update_display(*display_buffer.pop(0))
 
-            # time.sleep(0.1)
+            time.sleep(0.1)
