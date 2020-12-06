@@ -1,7 +1,7 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
 from random import randrange
-from functools import cached_property, cache
+from functools import cached_property
 from collections import namedtuple
 
 import numpy as np
