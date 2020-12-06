@@ -200,6 +200,7 @@ class GameDisplay:
         pygame.display.set_caption("Tetris")
 
         self.is_playing = True
+        # TODO: limit buffer size, throw out old frames if it gets too big
         display_buffer = []
 
         # TODO: pass around single mutable state object
