@@ -1,5 +1,6 @@
 import time
 import multiprocessing
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -19,7 +20,7 @@ from tetris.model.game import (
     Piece,
     create_new_state,
 )
-from tetris.model.task import TetrisMoveTask
+from tetris.model.task import TetrisMoveTimer
 
 RGB_WHITE = (255, 255, 255)
 RGB_BLACK = (0, 0, 0)
@@ -73,6 +74,10 @@ class GameDisplay:
     turn_duration_sec: Any = TURN_DURATION_SEC
     score: Any = 0
     key_event_subject: Any = Subject()
+    turn_disposable: Any = None
+    is_playing: Any = False
+    play_move: Any = lambda: None
+    timer: Any = None
 
     @property
     def row_count(self):
@@ -154,6 +159,7 @@ class GameDisplay:
 
     def subscribe_move(self, state, color_by_block, display_buffer):
         move = None
+        self.timer = TetrisMoveTimer(self.turn_duration_sec)
         piece = None
         color_by_block = {**color_by_block}
 
@@ -177,6 +183,8 @@ class GameDisplay:
         def play_move():
             nonlocal color_by_block
 
+            self.timer.end()
+
             if move:
                 piece_color = self.get_color_for_piece_type(piece.piece_type)
                 new_color_by_block = {**color_by_block, **{p.val: piece_color for p in piece.block_placements}}
@@ -189,8 +197,15 @@ class GameDisplay:
 
             display_buffer.append((new_state.board, new_state.piece_type, not move, lambda b: color_by_block[b]))
             self.score += 1
+        
+        self.play_move = play_move
 
-        self.player.get_move_obs(state, TetrisMoveTask(self.turn_duration_sec)).pipe(
+        if self.turn_disposable is not None:
+            self.turn_disposable.dispose()
+
+        threading.Thread(target=self.timer.start, daemon=True).start()
+
+        self.turn_disposable = self.player.get_move_obs(state, self.timer).pipe(
             subscribe_on(thread_pool_scheduler),
             observe_on(ui_scheduler),
         ).subscribe(
@@ -222,5 +237,8 @@ class GameDisplay:
 
             if display_buffer:
                 self.update_display(*display_buffer.pop(0))
+
+            if not self.timer.time_remaining:
+                self.play_move()
 
             time.sleep(0.1)

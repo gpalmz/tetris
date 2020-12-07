@@ -1,21 +1,25 @@
+import time
 from dataclasses import dataclass
 
 from common.model.task import Task, TaskState
 from tetris.model.game import State
 
 
-# this is a fake timer
-# fight me
 @dataclass
-class TetrisMoveTask:
+class TetrisMoveTimer(Task):
     time: int
 
     @property
     def time_remaining(self):
-        t = self.time
-        if t > 0:
+        return self.time
+
+    def start(self):
+        while self.time:
+            time.sleep(1)
             self.time -= 1
-        return t
+    
+    def end(self):
+        self.time = 0
 
 
 @dataclass

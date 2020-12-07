@@ -1,10 +1,11 @@
 import click
+import threading
 from rx.subject import Subject
 
 from tetris.model.game import create_initial_board, create_initial_state
 from tetris.model.strategy import select_move_random, select_move_smart, get_complex_utility
 from tetris.model.gameplay import SimplePlayer, MctsPlayer, InteractivePlayer
-from tetris.model.task import TetrisMoveTask
+from tetris.model.task import TetrisMoveTimer
 from tetris.ui.game import GameDisplay, pygame_session
 
 
@@ -18,10 +19,12 @@ def run_game_gui(player, max_turn_duration, key_event_subject):
 
 
 # mostly for debugging
+# TODO: duplicated in UI
 def run_game_stdout(player, max_turn_duration):
 
     def subscribe_to_move(state):
         move = None
+        timer = TetrisMoveTimer(max_turn_duration)
 
         def set_move(new_move):
             nonlocal move
@@ -31,11 +34,13 @@ def run_game_stdout(player, max_turn_duration):
 
         def play_move():
             nonlocal state
+            timer.end()
             if move:
                 state = state.play_move(move)
                 subscribe_to_move(state)
 
-        player.get_move_obs(state, TetrisMoveTask(max_turn_duration)).subscribe(
+        threading.Thread(target=timer.start, daemon=True).start()
+        player.get_move_obs(state, timer).subscribe(
             on_next=set_move, on_completed=play_move,
         )
 
