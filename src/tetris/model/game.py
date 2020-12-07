@@ -86,7 +86,7 @@ class PieceOrientation(Enum):
     RIGHT = 3
 
     def rotated_90_ccw(self, rotation_count=1):
-        return PieceOrientation(self.value + rotation_count % 4)
+        return PieceOrientation((self.value + rotation_count) % 4)
 
 
 GridPlacement = namedtuple("GridPlacement", "row col val")

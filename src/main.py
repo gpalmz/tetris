@@ -1,17 +1,19 @@
 import click
+from rx.subject import Subject
 
 from tetris.model.game import create_initial_board, create_initial_state
 from tetris.model.strategy import select_move_random, select_move_smart, get_complex_utility
-from tetris.model.gameplay import SimplePlayer, MctsPlayer
+from tetris.model.gameplay import SimplePlayer, MctsPlayer, InteractivePlayer
 from tetris.model.task import TetrisMoveTask
 from tetris.ui.game import GameDisplay, pygame_session
 
 
-def run_game_gui(player, max_turn_duration):
+def run_game_gui(player, max_turn_duration, key_event_subject):
     GameDisplay(
         create_initial_board(), 
         player,
         turn_duration_sec=max_turn_duration,
+        key_event_subject=key_event_subject,
     ).play_game()
 
 
@@ -48,11 +50,12 @@ def run_game_stdout(player, max_turn_duration):
 @click.option("--mcts-playout-depth", default=1000, help="Max playout depth.")
 def run_game(interface, player_type, max_turn_duration, mcts_playout_policy, mcts_playout_depth):
     with pygame_session():
+        key_event_subject = Subject()
         if player_type == "interactive":
             if interface != "gui":
                 raise ValueError("Interactive play only supported in GUI.")
             else:
-                player = SimplePlayer()  # TODO: create interactive player
+                player = InteractivePlayer(key_event_subject)
         elif player_type == "simple":
             player = SimplePlayer()
         else:
@@ -67,7 +70,7 @@ def run_game(interface, player_type, max_turn_duration, mcts_playout_policy, mct
             )
 
         if interface == "gui":
-            run_game_gui(player, max_turn_duration)
+            run_game_gui(player, max_turn_duration, key_event_subject)
         else:
             run_game_stdout(player, max_turn_duration)
 
