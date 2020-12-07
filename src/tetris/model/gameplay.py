@@ -23,7 +23,9 @@ class SimplePlayer(Player):
     """A Tetris player that uses hardcoded logic."""
 
     def get_move_obs(self, state, timer):
-        return rx.of(select_move_smart(TetrisTaskState(state), state.possible_moves))
+        return rx.from_iterable(
+            filter(None, [select_move_smart(TetrisTaskState(state), state.possible_moves)])
+        )
 
 
 @dataclass

@@ -183,6 +183,8 @@ class GameDisplay:
         def play_move():
             nonlocal color_by_block
 
+            if self.turn_disposable is not None:
+                self.turn_disposable.dispose()
             self.timer.end()
 
             if move:
@@ -197,8 +199,6 @@ class GameDisplay:
 
             display_buffer.append((new_state.board, new_state.piece_type, not move, lambda b: color_by_block[b]))
             self.score += 1
-            if self.turn_disposable is not None:
-                self.turn_disposable.dispose()
         
         self.play_move = play_move
 
