@@ -10,6 +10,7 @@ import rx
 from rx.operators import subscribe_on, observe_on
 from rx.scheduler import ThreadPoolScheduler
 from rx.scheduler.mainloop import PyGameScheduler
+from rx.subject import Subject
 
 from tetris.model.game import (
     Block,
@@ -71,6 +72,7 @@ class GameDisplay:
     get_color_for_piece_type: Any = lambda piece_type: COLOR_BY_PIECE_TYPE[piece_type]
     turn_duration_sec: Any = TURN_DURATION_SEC
     score: Any = 0
+    key_event_subject: Any = Subject()
 
     @property
     def row_count(self):
@@ -201,10 +203,13 @@ class GameDisplay:
 
         self.is_playing = True
         # TODO: limit buffer size, throw out old frames if it gets too big
-        display_buffer = []
-
+        state = create_new_state(self.board)
+        display_buffer = [
+            # initial state
+            (state.board, state.piece_type, False, {}),
+        ]
         # TODO: pass around single mutable state object
-        self.subscribe_move(create_new_state(self.board), {}, display_buffer)
+        self.subscribe_move(state, {}, display_buffer)
 
         while True:
             ui_scheduler.run()
@@ -212,6 +217,8 @@ class GameDisplay:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return
+                elif event.type == pygame.KEYDOWN:
+                    self.key_event_subject.on_next(event)
 
             if display_buffer:
                 self.update_display(*display_buffer.pop(0))
