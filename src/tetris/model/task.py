@@ -9,6 +9,8 @@ from tetris.model.game import State
 class TetrisMoveTimer(Task):
     time: int
 
+    # unfortunate that you have to use a computed property when implementing an abstract property
+    # TODO: probably better to make this observable regardless
     @property
     def time_remaining(self):
         return self.time

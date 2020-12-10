@@ -4,11 +4,15 @@ import random
 
 from common.model.task import create_select_action_by_utility
 
-# WEIGHT_CONCEALED_SPACE_UTILITY = 213
-# WEIGHT_EMPTY_ROW_UTILITY = 12
-# WEIGHT_ROW_SUM_UTILITY = 0.4
+
+def get_scaled_param_weights(dct):
+    """Produce a dict with all param weights scaled to sum to 1."""
+    total = sum(dct.values())
+    return {k: v / total for k, v in dct.items()}
+
+
 with open("../config/params.json") as f:
-    PARAM_WEIGHTS = json.load(f)
+    PARAM_WEIGHTS = get_scaled_param_weights(json.load(f))
 WEIGHT_CONCEALED_SPACE_UTILITY = PARAM_WEIGHTS["weight_concealed_space_utility"]
 WEIGHT_EMPTY_ROW_UTILITY = PARAM_WEIGHTS["weight_empty_row_utility"]
 WEIGHT_ROW_SUM_UTILITY = PARAM_WEIGHTS["weight_row_sum_utility"]
@@ -79,7 +83,7 @@ def get_complex_utility(
         get_unconcealed_space_proportion(state.state) * weight_concealed_space_utility
         + get_empty_row_proportion(state.state) * weight_empty_row_utility
         + get_row_sum_proportion(state.state) * weight_row_sum_utility
-    ) / 5  # TODO: kind of a magic number to weight the utility in mcts
+    ) * 20  # TODO: magic number to make these vary similarly to a win/loss scheme
 
 
 select_move_smart = create_select_action_by_utility(get_complex_utility)

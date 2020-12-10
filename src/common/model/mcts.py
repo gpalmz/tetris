@@ -5,7 +5,7 @@ from typing import Optional, Dict
 
 from common.model.task import Task, TaskState
 
-# TODO: fuck around with this
+# TODO: mess around with this
 UCT_C = math.sqrt(2)
 
 
