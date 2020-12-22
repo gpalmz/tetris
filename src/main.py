@@ -20,31 +20,22 @@ def run_game_gui(player, max_turn_duration, key_event_subject):
 
 # mostly for debugging
 # TODO: duplicated in UI
+from tetris.ui.game_presenter import GamePresenter
+
 def run_game_stdout(player, max_turn_duration):
+    unconfirmed_state_subject = Subject()
+    state_subject = Subject()
 
-    def subscribe_to_move(state):
-        move = None
-        timer = TetrisMoveTimer(max_turn_duration)
+    presenter = GamePresenter(
+        player, 
+        max_turn_duration, 
+        unconfirmed_state_subject=unconfirmed_state_subject, 
+        state_subject=state_subject,
+    )
 
-        def set_move(new_move):
-            nonlocal move
-            if new_move and new_move != move:
-                print(state.play_move(new_move).board)
-            move = new_move
+    unconfirmed_state_subject.subscribe(lambda state: print(state.board))
 
-        def play_move():
-            nonlocal state
-            timer.end()
-            if move:
-                state = state.play_move(move)
-                subscribe_to_move(state)
-
-        threading.Thread(target=timer.start, daemon=True).start()
-        player.get_move_obs(state, timer).subscribe(
-            on_next=set_move, on_completed=play_move,
-        )
-
-    subscribe_to_move(create_initial_state())
+    presenter.run_game()
 
 
 @click.command("run")
