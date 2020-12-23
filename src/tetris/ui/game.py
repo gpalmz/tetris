@@ -78,6 +78,7 @@ def scale_opacity(color, opacity):
     return tuple(channel * opacity for channel in color)
 
 
+# TODO: max display buffer size, squash updates at the top of the buffer when full
 @dataclass
 class GameDisplay:
     conductor: Any
@@ -93,7 +94,7 @@ class GameDisplay:
     key_event_subject: Any = Subject()
     state: Any = GameDisplayState()
     display_buffer: Any = field(default_factory=lambda: [])
-    display_update_delay: Any = 0.1  # TODO: dynamic refresh rate based on buffer size
+    display_update_delay: Any = 0.1
 
     @property
     def header_height(self):
