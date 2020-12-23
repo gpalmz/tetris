@@ -1,7 +1,7 @@
 from enum import Enum, unique, auto
 from dataclasses import dataclass
 from random import randrange
-from functools import cached_property
+from functools import cached_property, cache
 from collections import namedtuple
 
 import numpy as np
@@ -234,6 +234,7 @@ class State:
             if can_place_at_coord(self.board, Piece(self.piece_type, orientation), 0, col)
         ]
 
+    @cache
     def get_piece_for_move(self, move):
         return Piece(self.piece_type, move.orientation)
 

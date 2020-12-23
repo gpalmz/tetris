@@ -35,6 +35,4 @@ class TetrisTaskNode(TaskNode):
             state = state.perform_action(self.select_move(state, possible_actions))
             i += 1
 
-        utility = self.get_utility(state)
-        print("utility:", utility)  # TODO: remove or convert to logging
-        return utility
+        return self.get_utility(state)
