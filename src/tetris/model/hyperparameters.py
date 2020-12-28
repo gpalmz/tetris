@@ -1,14 +1,13 @@
 import functools
 
 import numpy as np
-from sklearn.metrics import make_scorer
 from sklearn.model_selection import RandomizedSearchCV
-from sklearn.svm import SVR
 from sklearn.base import BaseEstimator, RegressorMixin
 
 from common.model.task import create_select_action_by_utility
 from tetris.model.board import create_initial_board_state
 from tetris.model.strategy import get_complex_utility
+from tetris.model.gameplay.common.game_state import GameState
 from tetris.model.task import TetrisTaskState
 
 PARAM_DISTRIBUTIONS = dict(
@@ -18,30 +17,24 @@ PARAM_DISTRIBUTIONS = dict(
 )
 
 
-def get_game_turn_count(get_utility):
+def get_game_score(get_utility):
     """Play a game of Tetris using a state utility estimator function and 
     produce the number of turns the game lasted."""
-    state = TetrisTaskState(create_initial_board_state())
-    move_count = 0
+    select_action = create_select_action_by_utility(get_utility)
+
+    state = TetrisTaskState(GameState(create_initial_board_state(), 0))
 
     while True:
-        # TODO: why is try/catch necessary?
-        try:
-            move = create_select_action_by_utility(get_utility)(
-                state, state.possible_actions,
-            )
-            if move:
-                state = state.perform_action(move)
-                move_count += 1
-            else:
-                break
-        except ValueError:
+        move = select_action(state, state.possible_actions)
+        if move is None:
             break
+        else:
+            state = state.perform_action(move)
 
-    return move_count
+    return state.state.score
 
 
-class GameLengthEstimator(BaseEstimator, RegressorMixin):
+class GameScoreEstimator(BaseEstimator, RegressorMixin):
 
     def __init__(
         self, 
@@ -55,7 +48,7 @@ class GameLengthEstimator(BaseEstimator, RegressorMixin):
         self.score_ = 0
 
     def fit(self, X, y=None):
-        self.score_ = get_game_turn_count(
+        self.score_ = get_game_score(
             functools.partial(
                 get_complex_utility,
                 weight_concealed_space_utility=self.weight_concealed_space_utility, 
@@ -72,11 +65,8 @@ class GameLengthEstimator(BaseEstimator, RegressorMixin):
         return sum(self.predict(X))
 
 
-# TODO: what do the magic numbers mean and how were they selected?
 def tune_move_selector_params(n_iter=20, n_samples=50, param_distributions=PARAM_DISTRIBUTIONS):
-    return RandomizedSearchCV(
-        GameLengthEstimator(), param_distributions, n_iter=n_iter,
-    ).fit(
+    return RandomizedSearchCV(GameScoreEstimator(), param_distributions, n_iter=n_iter).fit(
         # TODO: remove duplicate
-        tuple(1 for i in range(n_samples)), y=tuple(1 for i in range(n_samples)),
+        tuple(1 for _ in range(n_samples)), y=tuple(1 for _ in range(n_samples)),
     ).best_params_
