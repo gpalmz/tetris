@@ -12,8 +12,7 @@ class SimplePlayer(Player):
     """A Tetris player that uses hardcoded logic."""
     select_move: "" = select_move_smart
 
-    def get_move_obs(self, state, timer):
-        task_state = TetrisTaskState(state)
-        return rx.from_iterable(
-            filter(None, [self.select_move(task_state, task_state.possible_actions)])
-        )
+    def get_move_obs(self, game_state, timer):
+        task_state = TetrisTaskState(game_state)
+        move = self.select_move(task_state, task_state.possible_actions)
+        return rx.just(move) if move is not None else rx.empty()

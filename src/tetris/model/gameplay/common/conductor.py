@@ -1,64 +1,71 @@
-import threading
 from dataclasses import dataclass
 
-from rx.subject import Subject, ReplaySubject
-from rx.operators import subscribe_on, observe_on
+from rx.subject import Subject, ReplaySubject, BehaviorSubject
+from rx.disposable import CompositeDisposable
+from rx import operators as op
 
-from tetris.model.task import TetrisMoveTimer
-from tetris.model.game import create_initial_state
+from tetris.model.gameplay.common.timer import create_countdown_obs, create_timer
+from tetris.model.gameplay.common.game_state import GameState
+from tetris.model.board import create_initial_board_state
 
 
 @dataclass
 class GameConductor:
     player: ""
     max_turn_duration: int
-    unconfirmed_state_subject: "" = Subject()
-    state_subject: "" = ReplaySubject()
-    move_time_remaining_subject: "" = Subject()
-    subscribe_on: "" = None
-    observe_on: "" = None
+    board_state_init: "" = create_initial_board_state()
+    move_subject: "" = BehaviorSubject(None)
+    turn_time_remaining_subject: "" = BehaviorSubject(None)
+    scheduler: "" = None # TODO: run_game fails if not specified
+
+    def _run_game(self, game_state):
+        move = None
+
+        def set_move(new_move):
+            nonlocal move
+
+            if new_move and new_move != move:
+                move = new_move
+                self.move_subject.on_next((game_state, move, False))
+
+        def play_move():
+            turn_disposable.dispose()
+
+            if move:
+                self.move_subject.on_next((game_state, move, True))
+                self._run_game(game_state.play_move(move))
+            else:
+                self.turn_time_remaining_subject.on_completed()
+                self.move_subject.on_completed()
+
+        countdown_obs = create_countdown_obs(self.max_turn_duration, scheduler=self.scheduler).pipe(
+            op.observe_on(self.scheduler),
+            op.subscribe_on(self.scheduler),
+        )
+
+        timer = create_timer(
+            self.max_turn_duration,
+            countdown_obs=countdown_obs,
+            subscribe_on=self.scheduler,
+            observe_on=self.scheduler,
+        )
+
+        turn_disposable = CompositeDisposable(
+            self.player.get_move_obs(game_state, timer).pipe(
+                op.observe_on(self.scheduler),
+                op.subscribe_on(self.scheduler),
+            ).subscribe(
+                on_next=set_move, 
+                on_completed=play_move,
+                scheduler=self.scheduler,
+            ),
+            countdown_obs.subscribe(
+                on_next=self.turn_time_remaining_subject.on_next,
+                on_completed=play_move,
+                scheduler=self.scheduler,
+            ),
+            timer.run(),
+        )
 
     def run_game(self):
-        # TODO: maybe use a replay subject and pass out an initial state
-        turn_disposable = None
-
-        def subscribe_to_move(state):
-            nonlocal turn_disposable
-
-            move = None
-            # TODO: make timer observable, subscribe to it, if 0, play move
-            timer = TetrisMoveTimer(self.max_turn_duration)
-
-            def set_move(new_move):
-                nonlocal move
-
-                if new_move and new_move != move:
-                    move = new_move
-                    self.unconfirmed_state_subject.on_next((state, move))
-
-            def play_move():
-                nonlocal state
-
-                if turn_disposable is not None:
-                    turn_disposable.dispose()
-                timer.end()
-
-                if move:
-                    state = state.play_move(move)
-                    self.state_subject.on_next(state)
-                    subscribe_to_move(state)
-                else:
-                    self.state_subject.on_completed()
-
-            threading.Thread(target=timer.start, daemon=True).start()
-            move_obs = self.player.get_move_obs(state, timer)
-
-            if self.subscribe_on is not None:
-                move_obs = move_obs.pipe(subscribe_on(self.subscribe_on))
-            if self.observe_on is not None:
-                move_obs = move_obs.pipe(observe_on(self.observe_on))
-            
-            turn_disposable = move_obs.subscribe(on_next=set_move, on_completed=play_move)
-
-        # TODO: pass initial state with score of 0, empty board, no prospective move
-        subscribe_to_move(create_initial_state())
+        self._run_game(GameState(self.board_state_init, 0))

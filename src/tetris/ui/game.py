@@ -6,14 +6,16 @@ from typing import Any
 
 import pygame
 from rx.scheduler.mainloop import PyGameScheduler
+from rx.disposable import CompositeDisposable
 from rx.subject import Subject
-from rx.operators import subscribe_on, observe_on
+from rx import operators as op
 
-from common.util.concurrency import rx_background_scheduler
-from tetris.model.game import PieceType, PieceOrientation, Piece
+from tetris.model.board import PieceType, PieceOrientation, Piece
 
 RGB_WHITE = (255, 255, 255)
 RGB_BLACK = (0, 0, 0)
+
+DISPLAY_CAPTION = "Tetris"
 
 ROW_COUNT = 20
 COL_COUNT = 10
@@ -57,11 +59,12 @@ class GameDisplayState:
     piece_type: Any = None
     score: Any = None
     is_game_over: Any = None
+    turn_time_remaining: Any = None
     get_block_color: Any = None
 
 
-def if_present(optional, default):
-    return optional if optional is not None else default
+def if_present(opt, default):
+    return opt if opt is not None else default
 
 
 def update_display_state(state, update):
@@ -70,6 +73,7 @@ def update_display_state(state, update):
         piece_type=if_present(update.piece_type, state.piece_type),
         score=if_present(update.score, state.score),
         is_game_over=if_present(update.is_game_over, state.is_game_over),
+        turn_time_remaining=if_present(update.turn_time_remaining, state.turn_time_remaining),
         get_block_color=if_present(update.get_block_color, state.get_block_color)
     )
 
@@ -78,7 +82,6 @@ def scale_opacity(color, opacity):
     return tuple(channel * opacity for channel in color)
 
 
-# TODO: max display buffer size, squash updates at the top of the buffer when full
 @dataclass
 class GameDisplay:
     conductor: Any
@@ -93,12 +96,12 @@ class GameDisplay:
     get_color_for_piece_type: Any = lambda piece_type: COLOR_BY_PIECE_TYPE[piece_type]
     key_event_subject: Any = Subject()
     state: Any = GameDisplayState()
-    display_buffer: Any = field(default_factory=lambda: [])
+    display_caption: Any = DISPLAY_CAPTION
     display_update_delay: Any = 0.1
 
     @property
     def header_height(self):
-        return 5 * self.square_size
+        return 4 * self.square_size
 
     @property
     def height(self):
@@ -133,7 +136,7 @@ class GameDisplay:
         for placement in piece.block_placements:
             self.draw_block(
                 color,
-                (placement.col + (self.col_count - piece.col_count) // 2) * self.square_size,
+                (placement.col + 2 + (self.col_count - piece.col_count) // 2) * self.square_size,
                 (placement.row + 1) * self.square_size,
             )
 
@@ -147,37 +150,39 @@ class GameDisplay:
 
     def draw_game_over(self):
         self.display.blit(self.text_font_primary.render(
-            "You lost!", True, self.text_color), (10, 10))
+            "Game over!", True, self.text_color), (10, 70))
 
     def draw_score(self, score):
         self.display.blit(self.text_font_primary.render(
-            f"Score: {score}", True, self.text_color), (175, 10))
+            f"Score: {score}", True, self.text_color), (10, 40))
 
-    def update_state(self, update):
+    def draw_turn_time_remaining(self, turn_time_remaining):
+        self.display.blit(self.text_font_primary.render(
+            f"Time: {turn_time_remaining}", True, self.text_color), (10, 10))
+
+    def queue_display_update(self, update):
         self.state = update_display_state(self.state, update)
 
-    def update_display(self, update):
-        self.update_state(update)
+    def update_display(self):
+        s = self.state
 
         self.draw_background()
 
-        self.draw_current_piece(self.state.piece_type)
-        self.draw_board(self.state.board, self.state.get_block_color)
-        self.draw_score(self.state.score)
-        if self.state.is_game_over:
+        if s.piece_type is not None:
+            self.draw_current_piece(s.piece_type)
+        if s.board is not None and s.get_block_color is not None:
+            self.draw_board(s.board, s.get_block_color)
+        if s.score is not None:
+            self.draw_score(s.score)
+        if s.turn_time_remaining is not None:
+            self.draw_turn_time_remaining(s.turn_time_remaining)
+        if s.is_game_over:
             self.draw_game_over()
 
         pygame.display.flip()
 
-    def queue_display_update(self, update):
-        self.display_buffer.append(update)
-
-    def update_display_next(self):
-        if self.display_buffer:
-            self.update_display(self.display_buffer.pop(0))
-
     def run(self):
-        pygame.display.set_caption("Tetris")
+        pygame.display.set_caption(self.display_caption)
 
         while True:
             pygame_scheduler.run()
@@ -188,61 +193,59 @@ class GameDisplay:
                 elif event.type == pygame.KEYDOWN:
                     self.key_event_subject.on_next(event)
 
-            self.update_display_next()
+            self.update_display()
 
             time.sleep(self.display_update_delay)
 
     def run_game(self):
         color_by_block = {}
-        piece = None
 
         def end_game():
+            game_disposable.dispose()
+
             self.queue_display_update(GameDisplayState(is_game_over=True))
             
-        def handle_unconfirmed_state(state, move):
-            nonlocal piece
-
-            piece = state.get_piece_for_move(move)
-            piece_color = scale_opacity(self.get_color_for_piece_type(piece.piece_type), 1 / 8)
-            new_color_by_block = {**color_by_block, **{p.val: piece_color for p in piece.block_placements}}
-
-            self.queue_display_update(
-                GameDisplayState(
-                    board=state.play_move(move).board,
-                    get_block_color=lambda b: new_color_by_block[b],
-                    piece_type=state.piece_type,
-                )
-            )
-
-        def handle_state(state):
+        def handle_move(game_state, move, is_move_final):
             nonlocal color_by_block
 
+            if game_state is None:
+                return
+
+            piece = game_state.get_piece_for_move(move)
             piece_color = self.get_color_for_piece_type(piece.piece_type)
-            new_color_by_block = {**color_by_block, **{p.val: piece_color for p in piece.block_placements}}
-            color_by_block = {**new_color_by_block}
+
+            if not is_move_final:
+                piece_color = scale_opacity(piece_color, 1 / 8)
+
+            new_game_state = game_state.play_move(move)
+            new_color_by_block = {**{p.val: piece_color for p in piece.block_placements}, **color_by_block}
+
+            if is_move_final:
+                # throw out blocks that have been cleared
+                new_game_state_blocks = set(p.val for p in new_game_state.board.block_placements)
+                color_by_block = {
+                    b: c for b, c in new_color_by_block.items() if b in new_game_state_blocks
+                }
 
             self.queue_display_update(
                 GameDisplayState(
-                    board=state.board, 
+                    board=new_game_state.board,
                     get_block_color=lambda b: new_color_by_block[b],
-                    piece_type=state.piece_type, 
-                    score=0, # TODO: keep track of score in conductor
+                    piece_type=game_state.piece_type,
+                    score=new_game_state.score if is_move_final else None,
                 )
             )
 
-        self.conductor.unconfirmed_state_subject.pipe(
-            subscribe_on(rx_background_scheduler),
-            observe_on(pygame_scheduler),
-        ).subscribe(
-            lambda state_move: handle_unconfirmed_state(*state_move),
-        )
-
-        self.conductor.state_subject.pipe(
-            subscribe_on(rx_background_scheduler),
-            observe_on(pygame_scheduler),
-        ).subscribe(
-            on_next=handle_state, 
-            on_completed=end_game,
+        game_disposable = CompositeDisposable(
+            self.conductor.move_subject.subscribe(
+                on_next=lambda v: handle_move(*v) if v is not None else None, 
+                on_completed=end_game,
+                scheduler=pygame_scheduler,
+            ),
+            self.conductor.turn_time_remaining_subject.subscribe(
+                lambda t: self.queue_display_update(GameDisplayState(turn_time_remaining=t)),
+                scheduler=pygame_scheduler,
+            ),
         )
 
         self.conductor.run_game()

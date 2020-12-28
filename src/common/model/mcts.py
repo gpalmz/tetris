@@ -82,7 +82,6 @@ class TaskNode(ABC):
 
         :param get_node_selection_value: A function used to determine the value 
         of a node in the selection phase of the algorithm."""
-
         while task.time_remaining:
             selected_node = self.select(get_node_selection_value)
             if not selected_node.possible_actions:

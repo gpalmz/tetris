@@ -1,4 +1,5 @@
 import random
+import weakref
 from dataclasses import dataclass
 from typing import Callable, List
 
@@ -13,11 +14,11 @@ class TetrisTaskNode(TaskNode):
     get_utility: Callable[[TetrisTaskState], float] = get_complex_utility
 
     def expand(self):
-        # random to avoid getting stuck with the worst move when playout policy ties
+        # random to avoid getting stuck with the worst move when utility is tied
         action = select_move_random(self.state, self.unexplored_actions)
         child = TetrisTaskNode(
             self.state.perform_action(action), 
-            parent=self, 
+            parent=weakref.proxy(self), 
             select_move=self.select_move,
             get_utility=self.get_utility,
         )

@@ -7,7 +7,7 @@ from sklearn.svm import SVR
 from sklearn.base import BaseEstimator, RegressorMixin
 
 from common.model.task import create_select_action_by_utility
-from tetris.model.game import create_initial_state
+from tetris.model.board import create_initial_board_state
 from tetris.model.strategy import get_complex_utility
 from tetris.model.task import TetrisTaskState
 
@@ -21,7 +21,7 @@ PARAM_DISTRIBUTIONS = dict(
 def get_game_turn_count(get_utility):
     """Play a game of Tetris using a state utility estimator function and 
     produce the number of turns the game lasted."""
-    state = TetrisTaskState(create_initial_state())
+    state = TetrisTaskState(create_initial_board_state())
     move_count = 0
 
     while True:

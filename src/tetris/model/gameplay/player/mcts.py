@@ -5,7 +5,7 @@ import rx
 
 from tetris.model.mcts import TetrisTaskNode
 from tetris.model.strategy import select_move_random, get_complex_utility
-from tetris.model.task import TetrisTaskState
+from tetris.model.task import TetrisMoveTask, TetrisTaskState
 from tetris.model.gameplay.common.player import Player
 
 
@@ -16,14 +16,14 @@ class MctsPlayer(Player):
     get_utility: Callable[[TetrisTaskState], float] = get_complex_utility
     max_playout_depth: Optional[int] = None
 
-    def get_move_obs(self, state, timer):
+    def get_move_obs(self, game_state, timer):
         return rx.from_iterable(
             TetrisTaskNode(
-                TetrisTaskState(state), 
+                TetrisTaskState(game_state), 
                 select_move=self.select_move,
                 get_utility=self.get_utility,
             ).mcts(
-                timer, max_playout_depth=self.max_playout_depth
+                TetrisMoveTask(timer), max_playout_depth=self.max_playout_depth
             )
         )
  

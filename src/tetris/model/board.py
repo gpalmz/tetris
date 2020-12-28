@@ -220,7 +220,7 @@ def clear_full_rows(board):
 
 
 @dataclass(frozen=True)
-class State:
+class BoardState:
     board: Board
     piece_type: PieceType
 
@@ -238,8 +238,8 @@ class State:
     def get_piece_for_move(self, move):
         return Piece(self.piece_type, move.orientation)
 
-    def play_piece(self, piece, col):
-        return create_new_state(
+    def _play_piece(self, piece, col):
+        return create_new_board_state(
             clear_full_rows(
                 self.board.place(
                     tuple(
@@ -256,12 +256,12 @@ class State:
 
     def play_move(self, move):
         """Produce a new state with the current piece placed and a new random piece type."""
-        return self.play_piece(self.get_piece_for_move(move), move.col)
+        return self._play_piece(self.get_piece_for_move(move), move.col)
 
 
-def create_new_state(board):
-    return State(board, PieceType(randrange(len(PieceType)) + 1))
+def create_new_board_state(board):
+    return BoardState(board, PieceType(randrange(len(PieceType)) + 1))
 
 
-def create_initial_state():
-    return create_new_state(create_initial_board())
+def create_initial_board_state():
+    return create_new_board_state(create_initial_board())

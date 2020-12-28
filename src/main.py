@@ -38,8 +38,7 @@ def run_game(player_type, max_turn_duration, mcts_playout_policy, mcts_playout_d
             GameConductor(
                 player, 
                 max_turn_duration,
-                subscribe_on=rx_background_scheduler,
-                observe_on=rx_background_scheduler,
+                scheduler=rx_background_scheduler,
             ),
             key_event_subject=key_event_subject,
         ).run_game()
