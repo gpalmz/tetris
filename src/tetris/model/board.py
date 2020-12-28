@@ -1,7 +1,7 @@
 from enum import Enum, unique, auto
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from random import randrange
-from functools import cached_property, cache
+from functools import cached_property
 from collections import namedtuple
 
 import numpy as np
@@ -131,7 +131,7 @@ class Piece:
         )
 
 
-# NOTE: to see the absolute worst bug in the world, remove "eq=False" and use
+# NOTE: To see the absolute worst bug in the world, remove "eq=False" and use
 # the functools.cache annotation on any method
 @dataclass(frozen=True, eq=False)
 class Board:
@@ -175,9 +175,8 @@ class Board:
         return Board(
             np.vstack(
                 [
-                    *[[make_space() for _ in range(self.col_count)]
-                      for _ in range(len(rows))],
-                    *np.delete(self.grid, rows, axis=0)
+                    *[[make_space() for _ in range(self.col_count)] for _ in range(len(rows))],
+                    *np.delete(self.grid, rows, axis=0),
                 ]
             )
         )
@@ -223,6 +222,7 @@ def clear_full_rows(board):
 class BoardState:
     board: Board
     piece_type: PieceType
+    piece_cache: dict = field(default_factory=dict)
 
     @cached_property
     def possible_moves(self):
@@ -234,9 +234,18 @@ class BoardState:
             if can_place_at_coord(self.board, Piece(self.piece_type, orientation), 0, col)
         ]
 
-    @cache
+    # NOTE: I initially used functools.cache here, but if you use it on a method of a non-hashable 
+    # class, you end up with an absolutely terrible memory leak
     def get_piece_for_move(self, move):
-        return Piece(self.piece_type, move.orientation)
+        # cache pieces so other components can use blocks by reference
+        # not a performance optimization
+        piece = self.piece_cache.get(move)
+
+        if piece is None:
+            piece = Piece(self.piece_type, move.orientation)
+            self.piece_cache[move] = piece
+
+        return piece
 
     def _play_piece(self, piece, col):
         return create_new_board_state(

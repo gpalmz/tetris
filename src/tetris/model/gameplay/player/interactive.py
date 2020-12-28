@@ -27,9 +27,13 @@ def _rotate(move, board_state):
 @dataclass
 class InteractivePlayer(Player):
     key_event_obs: "Observable[pygame.event]"
+    key_event_disposable: "" = None
 
     def get_move_obs(self, game_state, timer):
-        # TODO: consider behavior subject
+        if self.key_event_disposable is not None:
+            self.key_event_disposable.dispose()
+
+        # TODO: use behavior subject
         move_subject = ReplaySubject()
         s = game_state
 
@@ -53,8 +57,7 @@ class InteractivePlayer(Player):
                     move_subject.on_completed()
             
             set_move(select_move_random(s, s.possible_moves))
-            # TODO: dispose
-            self.key_event_obs.subscribe(on_next_event)
+            self.key_event_disposable = self.key_event_obs.subscribe(on_next_event)
         else:
             move_subject.on_completed()
 

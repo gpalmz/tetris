@@ -35,11 +35,7 @@ def run_game(player_type, max_turn_duration, mcts_playout_policy, mcts_playout_d
 
     with pygame_session():
         GameDisplay(
-            GameConductor(
-                player, 
-                max_turn_duration,
-                scheduler=rx_background_scheduler,
-            ),
+            GameConductor(player, max_turn_duration, rx_background_scheduler),
             key_event_subject=key_event_subject,
         ).run_game()
 

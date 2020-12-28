@@ -20,41 +20,24 @@ def create_countdown_obs(countown_sec, scheduler=None):
     )
 
 
-# TODO: receiver -> countdown_receiver
-# or change the constructor
 @dataclass
 class Timer:
-    receiver: ""
+    countdown_receiver: ""
     is_terminated: bool = False
 
     @property
     def time_remaining_sec(self):
-        return 0 if self.is_terminated else self.receiver.value
+        return 0 if self.is_terminated else self.countdown_receiver.value
 
     def run(self):
-        receiver_disposable = self.receiver.subscribe()
+        countdown_receiver_disposable = self.countdown_receiver.subscribe()
 
         def terminate():
-            receiver_disposable.dispose()
+            countdown_receiver_disposable.dispose()
             self.is_terminated = True
 
         return Disposable(terminate)
 
 
-def create_timer(
-    time_sec_init,
-    countdown_obs=None,
-    subscribe_on=None,
-    observe_on=None,
-):
-    if countdown_obs is None:
-        countdown_obs = create_countdown_obs(time_sec_init)
-
-    return Timer(
-        Receiver(
-            countdown_obs,
-            value=time_sec_init,
-            subscribe_on=None,
-            observe_on=None,
-        )
-    )
+def create_timer(countdown_obs, time_sec_init):
+    return Timer(Receiver(countdown_obs, value=time_sec_init))

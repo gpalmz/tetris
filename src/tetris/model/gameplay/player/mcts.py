@@ -22,8 +22,6 @@ class MctsPlayer(Player):
                 TetrisTaskState(game_state), 
                 select_move=self.select_move,
                 get_utility=self.get_utility,
-            ).mcts(
-                TetrisMoveTask(timer), max_playout_depth=self.max_playout_depth
-            )
+            ).mcts(TetrisMoveTask(timer), max_playout_depth=self.max_playout_depth)
         )
  

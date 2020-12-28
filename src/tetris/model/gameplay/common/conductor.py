@@ -13,10 +13,10 @@ from tetris.model.board import create_initial_board_state
 class GameConductor:
     player: ""
     max_turn_duration: int
+    scheduler: ""
     board_state_init: "" = create_initial_board_state()
     move_subject: "" = BehaviorSubject(None)
     turn_time_remaining_subject: "" = BehaviorSubject(None)
-    scheduler: "" = None # TODO: run_game fails if not specified
 
     def _run_game(self, game_state):
         move = None
@@ -24,16 +24,20 @@ class GameConductor:
         def set_move(new_move):
             nonlocal move
 
-            if new_move and new_move != move:
+            if new_move is not None and new_move != move:
                 move = new_move
                 self.move_subject.on_next((game_state, move, False))
 
         def play_move():
+            nonlocal move
+
             turn_disposable.dispose()
 
             if move:
                 self.move_subject.on_next((game_state, move, True))
-                self._run_game(game_state.play_move(move))
+                new_game_state = game_state.play_move(move)
+                move = None
+                self._run_game(new_game_state)
             else:
                 self.turn_time_remaining_subject.on_completed()
                 self.move_subject.on_completed()
@@ -43,12 +47,7 @@ class GameConductor:
             op.subscribe_on(self.scheduler),
         )
 
-        timer = create_timer(
-            self.max_turn_duration,
-            countdown_obs=countdown_obs,
-            subscribe_on=self.scheduler,
-            observe_on=self.scheduler,
-        )
+        timer = create_timer(countdown_obs, self.max_turn_duration)
 
         turn_disposable = CompositeDisposable(
             self.player.get_move_obs(game_state, timer).pipe(
@@ -57,12 +56,10 @@ class GameConductor:
             ).subscribe(
                 on_next=set_move, 
                 on_completed=play_move,
-                scheduler=self.scheduler,
             ),
             countdown_obs.subscribe(
                 on_next=self.turn_time_remaining_subject.on_next,
                 on_completed=play_move,
-                scheduler=self.scheduler,
             ),
             timer.run(),
         )
